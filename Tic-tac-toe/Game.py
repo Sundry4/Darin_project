@@ -5,15 +5,19 @@ from pygame import *
 class Game:
     background_color = (240, 240, 240)
     blue = (0, 0, 255)
+    light_blue = (103, 155, 239)
     red = (255, 0, 0)
     black = (0, 0, 0)
-    boarder_width = 3
+    violet = (126, 37, 140)
+    nice_green = (99, 150, 24)
+    gray = (180, 180, 180)
+    boarder_width = 2
     cell_width = 50
 
     def __init__(self, N):
         self.N = N
         self.win_width = self.cell_width * self.N
-        self.win_height = self.cell_width * self.N + 100
+        self.win_height = self.cell_width * self.N + 50
         display = (self.win_width, self.win_height)
 
         # creating board
@@ -26,8 +30,8 @@ class Game:
 
         cells = range(0, self.win_width + 1, self.win_width // self.N)
         for i in cells:
-            draw.line(self.surface, self.black, [0, i], [self.win_width, i], self.boarder_width)
-            draw.line(self.surface, self.black, [i, 0], [i, self.win_width], self.boarder_width)
+            draw.line(self.surface, self.light_blue, [0, i], [self.win_width, i], self.boarder_width)
+            draw.line(self.surface, self.light_blue, [i, 0], [i, self.win_width], self.boarder_width)
 
         self.screen.blit(self.surface, (0, 0))
         pygame.display.update()
@@ -37,6 +41,9 @@ class Game:
         for i in range(self.N):
             for j in range(self.N):
                 self.possible_moves.append([i, j])
+
+        self.player_one = None
+        self.player_two = None
 
     def get_pos(self, cell):
         pos = [cell[0] * self.cell_width, cell[1] * self.cell_width]
@@ -48,16 +55,16 @@ class Game:
         self.board[cell[0]][cell[1]] = 'X'
 
         pos = self.get_pos(cell)
-        draw.line(self.surface, self.blue, [pos[0] - 15, pos[1] - 15],
-                  [pos[0] + 15, pos[1] + 15], 5)
-        draw.line(self.surface, self.blue, [pos[0] - 15, pos[1] + 15],
-                  [pos[0] + 15, pos[1] - 15], 5)
+        draw.line(self.surface, self.black, [pos[0] - 15, pos[1] - 15],
+                  [pos[0] + 15, pos[1] + 15], 6)
+        draw.line(self.surface, self.black, [pos[0] - 15, pos[1] + 15],
+                  [pos[0] + 15, pos[1] - 15], 6)
 
     def put_O(self, cell):
         self.board[cell[0]][cell[1]] = 'O'
 
         pos = self.get_pos(cell)
-        draw.circle(self.surface, self.red, pos, 20, 4)
+        draw.circle(self.surface, self.red, pos, 20, 5)
 
     def check_win_condition(self, last_move):
         n = 3
@@ -67,8 +74,6 @@ class Game:
         x, y = last_move
 
         winner = self.board[x][y]
-
-        start_pos = 0
 
         # vertical victory
         for i in range(n):
@@ -119,7 +124,30 @@ class Game:
 
         return None
 
+    def restart(self):
+        self.surface = pygame.Surface((self.win_width, self.win_height))
+
+        self.surface.fill(self.background_color)
+
+        cells = range(0, self.win_width + 1, self.win_width // self.N)
+        for i in cells:
+            draw.line(self.surface, self.light_blue, [0, i], [self.win_width, i], self.boarder_width)
+            draw.line(self.surface, self.light_blue, [i, 0], [i, self.win_width], self.boarder_width)
+
+        self.screen.blit(self.surface, (0, 0))
+        pygame.display.update()
+
+        self.board = [[''] * self.N for i in range(self.N)]
+        self.possible_moves = []
+        for i in range(self.N):
+            for j in range(self.N):
+                self.possible_moves.append([i, j])
+        self.start_game(self.player_one, self.player_two)
+
     def start_game(self, player_one, player_two):
+        self.player_one = player_one
+        self.player_two = player_two
+
         curr_player = player_one
         while True:
 
@@ -139,7 +167,7 @@ class Game:
             if cells:
                 pos1 = self.get_pos(cells[0])
                 pos2 = self.get_pos(cells[1])
-                draw.line(self.surface, self.black, pos1, pos2, 5)
+                draw.line(self.surface, self.gray, pos1, pos2, 5)
                 self.screen.blit(self.surface, (0, 0))
 
                 winner = 'O'
@@ -158,14 +186,14 @@ class Game:
     def end(self, winner=None):
         font = pygame.font.Font(None, 50)
 
-        text = font.render('DRAW!', 2, (0, 0, 0))
+        text = font.render('DRAW! PRESS SPACE TO RESTART', 2, (0, 0, 0))
         if winner:
-            text = font.render('WINNER: {}'.format(winner), 2, (0, 0, 0))
+            text = font.render('WINNER: {}! PRESS SPACE TO RESTART'.format(winner), 2, (0, 0, 0))
 
         surf = pygame.Surface((self.win_width, 50))
         surf.fill(self.background_color)
         surf.blit(text, (0, 0))
-        self.screen.blit(surf, (20, self.win_height - 45))
+        self.screen.blit(surf, (10, self.win_height - 40))
         pygame.display.update()
 
         while True:
@@ -179,3 +207,5 @@ class Game:
                         pygame.display.quit()
                         pygame.quit()
                         exit()
+                    if i.key == K_SPACE:
+                        self.restart()
