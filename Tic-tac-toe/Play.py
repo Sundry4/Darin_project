@@ -1,8 +1,8 @@
 from Game import *
 from Players import *
 
-game = Game()
-player_one = HumanPlayer()
+game = Game(15)
+player_one = HumanPlayer(15)
 player_two = RandomPlayer()
 
 game.start_game(player_one, player_two)

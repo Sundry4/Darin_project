@@ -4,12 +4,11 @@ from pygame import *
 
 
 class HumanPlayer:
-    WIN_WIDTH = 240
-    N = 3
-    CELL_WIDTH = WIN_WIDTH // N
+    cell_width = 50
 
-    def __init__(self):
-        pass
+    def __init__(self, N=15):
+        self.N = N
+        self.win_width = N * self.cell_width
 
     def move_(self, possible_moves):
         while True:
@@ -26,13 +25,13 @@ class HumanPlayer:
                         cell = [self.N - 1, self.N - 1]
 
                         for j in range(self.N):
-                            curr_pos[0] += self.CELL_WIDTH
+                            curr_pos[0] += self.cell_width
                             if i.pos[0] <= curr_pos[0]:
                                 cell[0] = j
                                 break
 
                         for j in range(self.N):
-                            curr_pos[1] += self.CELL_WIDTH
+                            curr_pos[1] += self.cell_width
                             if i.pos[1] <= curr_pos[1]:
                                 cell[1] = j
                                 break
