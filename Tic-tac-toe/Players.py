@@ -1,6 +1,6 @@
-import pygame
+import time
 import random
-from pygame import *
+import pygame
 
 
 class HumanPlayer:
@@ -13,13 +13,13 @@ class HumanPlayer:
     def move_(self, possible_moves):
         while True:
             for i in pygame.event.get():
-                if i.type == QUIT:
+                if i.type == pygame.QUIT:
                     exit()
-                if i.type == KEYDOWN:
-                    if i.key == K_ESCAPE:
+                if i.type == pygame.KEYDOWN:
+                    if i.key == pygame.K_ESCAPE:
                         exit()
 
-                if i.type == MOUSEBUTTONDOWN:
+                if i.type == pygame.MOUSEBUTTONDOWN:
                     if i.button == 1:
                         curr_pos = [0, 0]
                         cell = [self.N - 1, self.N - 1]
@@ -47,5 +47,6 @@ class RandomPlayer:
         pass
 
     def move_(self, possible_moves):
+        time.sleep(0.1)
         return random.choice(possible_moves)
 
