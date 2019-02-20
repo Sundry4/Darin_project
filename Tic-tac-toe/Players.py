@@ -21,7 +21,7 @@ class HumanPlayer:
 
                 if i.type == pygame.MOUSEBUTTONDOWN:
                     if i.button == 1:
-                        curr_pos = [0, 0]
+                        curr_pos = [self.cell_width, self.cell_width]
                         cell = [self.N - 1, self.N - 1]
 
                         for j in range(self.N):

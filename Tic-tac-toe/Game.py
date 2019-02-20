@@ -15,23 +15,40 @@ class Game:
     cell_width = 50
 
     def __init__(self, N):
+        self.turns_amount = 0
+
         self.N = N
-        self.win_width = self.cell_width * self.N
-        self.win_height = self.cell_width * self.N + 50
-        display = (self.win_width, self.win_height)
+        self.win_width = self.cell_width * (self.N + 2)
+        self.win_height = self.cell_width * (self.N + 2)
+        self.display = (self.win_width, self.win_height)
 
         # creating board
         pygame.init()
-        self.screen = pygame.display.set_mode(display)
+        self.screen = pygame.display.set_mode(self.display)
         pygame.display.set_caption("Tic-tac-toe")
         self.surface = pygame.Surface((self.win_width, self.win_height))
 
         self.surface.fill(self.background_color)
 
-        cells = range(0, self.win_width + 1, self.win_width // self.N)
+        # drawing lines
+        cells = range(50, self.win_width - 50 + 1, self.cell_width)
         for i in cells:
-            draw.line(self.surface, self.light_blue, [0, i], [self.win_width, i], self.boarder_width)
-            draw.line(self.surface, self.light_blue, [i, 0], [i, self.win_width], self.boarder_width)
+            draw.line(self.surface, self.light_blue, [self.cell_width, i],
+                      [self.win_width - self.cell_width, i],
+                      self.boarder_width)
+            draw.line(self.surface, self.light_blue, [i, self.cell_width],
+                      [i, self.win_width - self.cell_width],
+                      self.boarder_width)
+
+        # printing numbers
+        letters = "abcdefghjklmnopqrstuvwsyz"
+        font = pygame.font.Font(None, 30)
+        for i in range(1, len(cells)):
+            text = font.render(str(i), 2, (0, 0, 0))
+            self.surface.blit(text, (20, self.cell_width * i + 17))
+
+            text = font.render(letters[i - 1], 2, (0, 0, 0))
+            self.surface.blit(text, (self.cell_width * i + 20, 20))
 
         self.screen.blit(self.surface, (0, 0))
         pygame.display.update()
@@ -46,7 +63,7 @@ class Game:
         self.player_two = None
 
     def get_pos(self, cell):
-        pos = [cell[0] * self.cell_width, cell[1] * self.cell_width]
+        pos = [(cell[0] + 1) * self.cell_width, (cell[1] + 1) * self.cell_width]
         pos[0] += self.cell_width // 2
         pos[1] += self.cell_width // 2
         return pos
@@ -75,7 +92,7 @@ class Game:
 
         winner = self.board[x][y]
 
-        # vertical victory
+        # vertical
         for i in range(n):
             match_count = 0
             for j in range(i - n + y + 1, i + y + 1):
@@ -87,7 +104,7 @@ class Game:
             if match_count == n:
                 return [(x, i - n + y + 1), (x, i + y)]
 
-        # horizontal victory
+        # horizontal
         for i in range(n):
             match_count = 0
             for j in range(i - n + x + 1, i + x + 1):
@@ -129,19 +146,34 @@ class Game:
 
         self.surface.fill(self.background_color)
 
-        cells = range(0, self.win_width + 1, self.win_width // self.N)
+        cells = range(50, self.win_width - 50 + 1, self.cell_width)
         for i in cells:
-            draw.line(self.surface, self.light_blue, [0, i], [self.win_width, i], self.boarder_width)
-            draw.line(self.surface, self.light_blue, [i, 0], [i, self.win_width], self.boarder_width)
+            draw.line(self.surface, self.light_blue, [self.cell_width, i],
+                      [self.win_width - self.cell_width, i],
+                      self.boarder_width)
+            draw.line(self.surface, self.light_blue, [i, self.cell_width],
+                      [i, self.win_width - self.cell_width],
+                      self.boarder_width)
+
+        letters = "abcdefghjklmnopqrstuvwsyz"
+        font = pygame.font.Font(None, 30)
+        for i in range(1, len(cells)):
+            text = font.render(str(i), 2, (0, 0, 0))
+            self.surface.blit(text, (25, self.cell_width * i + 17))
+
+            text = font.render(letters[i - 1], 2, (0, 0, 0))
+            self.surface.blit(text, (self.cell_width * i + 20, 20))
 
         self.screen.blit(self.surface, (0, 0))
         pygame.display.update()
 
+        self.turns_amount = 0
         self.board = [[''] * self.N for i in range(self.N)]
         self.possible_moves = []
         for i in range(self.N):
             for j in range(self.N):
                 self.possible_moves.append([i, j])
+
         self.start_game(self.player_one, self.player_two)
 
     def start_game(self, player_one, player_two):
@@ -150,9 +182,8 @@ class Game:
 
         curr_player = player_one
         while True:
-
             cell = curr_player.move_(self.possible_moves)
-
+            self.turns_amount += 1
             if curr_player == player_one:
                 self.put_X(cell)
                 self.board[cell[0]][cell[1]] = 'X'
@@ -165,10 +196,12 @@ class Game:
             # win condition check
             cells = self.check_win_condition(cell)
             if cells:
+                print("Amount of turns:", self.turns_amount)
                 pos1 = self.get_pos(cells[0])
                 pos2 = self.get_pos(cells[1])
                 draw.line(self.surface, self.gray, pos1, pos2, 5)
                 self.screen.blit(self.surface, (0, 0))
+                pygame.display.update()
 
                 winner = 'O'
                 if curr_player == player_two:
