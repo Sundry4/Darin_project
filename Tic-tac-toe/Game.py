@@ -1,7 +1,6 @@
 import pygame
 from pygame import *
 from Players import *
-from Dataset import *
 
 
 class Game:
@@ -55,7 +54,7 @@ class Game:
         self.screen.blit(self.surface, (0, 0))
         pygame.display.update()
 
-        self.board = [[''] * self.N for i in range(self.N)]
+        self.board = [[0] * self.N for i in range(self.N)]
         self.possible_moves = []
         for i in range(self.N):
             for j in range(self.N):
@@ -71,7 +70,7 @@ class Game:
         return pos
 
     def put_X(self, cell):
-        self.board[cell[0]][cell[1]] = 'X'
+        self.board[cell[0]][cell[1]] = -1
 
         pos = self.get_pos(cell)
         draw.line(self.surface, self.black, [pos[0] - 15, pos[1] - 15],
@@ -80,7 +79,7 @@ class Game:
                   [pos[0] + 15, pos[1] - 15], 6)
 
     def put_O(self, cell):
-        self.board[cell[0]][cell[1]] = 'O'
+        self.board[cell[0]][cell[1]] = 1
 
         pos = self.get_pos(cell)
         draw.circle(self.surface, self.red, pos, 20, 5)
@@ -170,7 +169,7 @@ class Game:
         pygame.display.update()
 
         self.turns_amount = 0
-        self.board = [[''] * self.N for i in range(self.N)]
+        self.board = [[0] * self.N for i in range(self.N)]
         self.possible_moves = []
         for i in range(self.N):
             for j in range(self.N):
@@ -184,22 +183,14 @@ class Game:
 
         curr_player = player_one
         while True:
-            if self.turns_amount % 2:
-                cell = curr_player.move_(self.possible_moves, labels_black[(self.turns_amount + 1) // 2])
-            else:
-                cell = curr_player.move_(self.possible_moves, labels_white[self.turns_amount // 2])
-
-            if self.turns_amount == 48:
-                self.end()
+            cell = curr_player.move_(self.possible_moves, self.board)
 
             self.turns_amount += 1
             if curr_player == player_one:
                 self.put_X(cell)
-                self.board[cell[0]][cell[1]] = 'X'
                 curr_player = player_two
             else:
                 self.put_O(cell)
-                self.board[cell[0]][cell[1]] = 'O'
                 curr_player = player_one
 
             # win condition check

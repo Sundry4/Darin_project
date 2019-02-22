@@ -8,72 +8,67 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim import lr_scheduler
 
-import math
-from Dataset import white_data_loader, black_data_loader
-
-
-class Net(nn.Module):
-    size = 15
-
-    def __init__(self):
-        super(Net, self).__init__()
-
-        self.features = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, stride=1, padding=1),
-            nn.ReLU()
-        )
-
-        self.classifier = nn.Sequential(
-            nn.Linear(self.size * self.size * 4, 512),
-            nn.ReLU(),
-            nn.Linear(512, 225)
-        )
-
-    def forward(self, x):
-        x = x.view(-1, 1, 15, 15)
-        x = self.features(x)
-        x = x.view(x.size(0), -1)
-        x = self.classifier(x)
-        return x
+from Dataset import white_train_loader, white_test_loader
+from Dataset import black_train_loader, black_test_loader
+from Net import Net
 
 
 def train(epoch, data_loader):
     # model.train()
     # exp_lr_scheduler.step()
 
-    batches = len(data_loader)
-    percent = {int(batches * 1 / 5): 20,
-               int(batches * 2 / 5): 40,
-               int(batches * 3 / 5): 60,
-               int(batches * 4 / 5): 80,
-               batches - 1: 100}
-    for batch_idx, (data, target) in enumerate(data_loader):
-        if batch_idx in percent:
-            print("{}% ready".format(percent[batch_idx]))
+    k = 0
+    for data, target in data_loader:
+        k += 1
 
         if torch.cuda.is_available():
             data = data.cuda()
             target = target.cuda()
 
-        print("Nani??")
         optimizer.zero_grad()
         output = model(data)
+        # print(*output)
         loss = criterion(output, target)
-
         loss.backward()
+        if k % 50 == 0:
+            print(loss.item())
         optimizer.step()
 
-    print("Training finished\n")
+    print()
 
 
-batch_size = 50
+def test_model(data_loader):
+    model.eval()
+    with torch.no_grad():
+        correct = 0
+
+        for data, target in data_loader:
+            if torch.cuda.is_available():
+                data = data.cuda()
+                target = target.cuda()
+
+            output = model(data)
+
+            pred = output.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+
+    print('Accuracy: {}/{} ({:.3f}%)\n'.format(correct, len(data_loader.dataset),
+                                               100. * correct / len(data_loader.dataset)))
+
+
+batch_size = 32
 
 model = Net()
-optimizer = optim.Adam(model.parameters())
+optimizer = optim.Adam(model.parameters(), lr=0.003)
 
 criterion = nn.CrossEntropyLoss()
-# exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
 
-for i in range(1):
-    train(i, white_data_loader)
+for i in range(40):
+    train(i, white_train_loader)
+test_model(white_test_loader)
+test_model(white_train_loader)
 
+
+path = 'model.pth'
+torch.save(model.state_dict(), path)

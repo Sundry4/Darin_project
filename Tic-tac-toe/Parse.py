@@ -23,7 +23,7 @@ def parse(path):
     k = 0
     for line in file:
         k += 1
-        if k == 100:
+        if k == 10000:
             break
 
         game = line.split()

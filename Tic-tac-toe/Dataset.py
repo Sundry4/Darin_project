@@ -9,7 +9,7 @@ field_size = 15
 
 
 # returns tensors of boards (1 - your stone, -1 - opponent's stone, 0 - empty cell)
-# and labels (stone positions which are pairs of numbers from 0 to 14)
+# and labels (stone positions which are numbers from 0 to 224)
 def create_dataset_white():
     data = []
     labels = []
@@ -21,7 +21,7 @@ def create_dataset_white():
                 board[turn[0] - 1][turn[1] - 1] = -1
             else:
                 data.append(deepcopy(board))
-                labels.append([turn[0] - 1, turn[1] - 1])
+                labels.append((turn[0] - 1) * 15 + turn[1] - 1)
                 board[turn[0] - 1][turn[1] - 1] = 1
 
             is_black = not is_black
@@ -44,7 +44,7 @@ def create_dataset_white():
 
 
 # returns tensors of boards (1 - your stone, -1 - opponent's stone, 0 - empty cell)
-# and labels (stone positions which are pairs of numbers from 0 to 14)
+# and labels (stone positions which are numbers from 0 to 224)
 def create_dataset_black():
     data = []
     labels = []
@@ -54,7 +54,7 @@ def create_dataset_black():
         for turn in game:
             if is_black:
                 data.append(deepcopy(board))
-                labels.append([turn[0] - 1, turn[1] - 1])
+                labels.append((turn[0] - 1) * 15 + turn[1] - 1)
                 board[turn[0] - 1][turn[1] - 1] = 1
             else:
                 board[turn[0] - 1][turn[1] - 1] = -1
@@ -81,10 +81,19 @@ def create_dataset_black():
 data_w = create_dataset_white()
 data_b = create_dataset_black()
 
-batch_size = 50
-white_data_loader = torch.utils.data.DataLoader(data_w, batch_size, shuffle=True)
-black_data_loader = torch.utils.data.DataLoader(data_b, batch_size, shuffle=True)
+white_train, white_test = torch.utils.data.random_split(data_w, (75867, 1000))
+black_train, black_test = torch.utils.data.random_split(data_b, (80617, 1000))
 
 del data_w
 del data_b
 
+batch_size = 50
+white_train_loader = torch.utils.data.DataLoader(white_train, batch_size, shuffle=True)
+white_test_loader = torch.utils.data.DataLoader(white_test, batch_size, shuffle=True)
+black_train_loader = torch.utils.data.DataLoader(black_train, batch_size, shuffle=True)
+black_test_loader = torch.utils.data.DataLoader(black_test, batch_size, shuffle=True)
+
+del white_train
+del white_test
+del black_train
+del black_test
