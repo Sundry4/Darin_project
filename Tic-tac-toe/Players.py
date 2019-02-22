@@ -10,7 +10,7 @@ class HumanPlayer:
         self.N = N
         self.win_width = N * self.cell_width
 
-    def move_(self, possible_moves):
+    def move_(self, possible_moves, cell):
         while True:
             for i in pygame.event.get():
                 if i.type == pygame.QUIT:
@@ -46,7 +46,15 @@ class RandomPlayer:
     def __init__(self):
         pass
 
-    def move_(self, possible_moves):
+    def move_(self, possible_moves, cell):
         time.sleep(0.1)
         return random.choice(possible_moves)
 
+
+class ProVis:
+    def __init__(self):
+        pass
+
+    def move_(self, possible_moves, cell):
+        time.sleep(1)
+        return [cell[0], cell[1]]

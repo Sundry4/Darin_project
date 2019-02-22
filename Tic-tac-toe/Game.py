@@ -1,5 +1,7 @@
 import pygame
 from pygame import *
+from Players import *
+from Dataset import *
 
 
 class Game:
@@ -182,7 +184,14 @@ class Game:
 
         curr_player = player_one
         while True:
-            cell = curr_player.move_(self.possible_moves)
+            if self.turns_amount % 2:
+                cell = curr_player.move_(self.possible_moves, labels_black[(self.turns_amount + 1) // 2])
+            else:
+                cell = curr_player.move_(self.possible_moves, labels_white[self.turns_amount // 2])
+
+            if self.turns_amount == 48:
+                self.end()
+
             self.turns_amount += 1
             if curr_player == player_one:
                 self.put_X(cell)

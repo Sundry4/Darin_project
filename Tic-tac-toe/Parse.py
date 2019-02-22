@@ -1,5 +1,5 @@
-import torch
-from torch import nn
+import time
+
 
 def parse(path):
     dic = {'a': 1, 'b': 2,
@@ -20,7 +20,12 @@ def parse(path):
 
     white = []
     black = []
+    k = 0
     for line in file:
+        k += 1
+        if k == 100:
+            break
+
         game = line.split()
         if game[0] == 'draw':
             continue
@@ -30,16 +35,13 @@ def parse(path):
 
         if len(set(game)) == len(game):
             if game[0] == 'white':
-                white.append(game)
+                white.append(game[1:])
             else:
-                black.append(game)
+                black.append(game[1:])
     return white, black
 
 
-path = '/home/alexandr/HomeWork/Darin/renju-master/data/train-1.renju'
+path = 'C:/Users/ashab.DESKTOP-4CJ6TE5/Home Work/Darin/train-1.renju'
 # 1984694 lines
 
 white_data, black_data = parse(path)
-
-print(len(white_data), len(black_data))
-print(len(white_data) + len(black_data))
