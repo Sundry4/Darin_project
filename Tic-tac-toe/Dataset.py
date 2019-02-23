@@ -18,11 +18,11 @@ def create_dataset_white():
         is_black = True
         for turn in game:
             if is_black:
-                board[turn[0] - 1][turn[1] - 1] = -1
+                board[turn[0] - 1][turn[1] - 1] = 1
             else:
                 data.append(deepcopy(board))
                 labels.append((turn[0] - 1) * 15 + turn[1] - 1)
-                board[turn[0] - 1][turn[1] - 1] = 1
+                board[turn[0] - 1][turn[1] - 1] = -1
 
             is_black = not is_black
 
@@ -81,8 +81,8 @@ def create_dataset_black():
 data_w = create_dataset_white()
 data_b = create_dataset_black()
 
-white_train, white_test = torch.utils.data.random_split(data_w, (75867, 1000))
-black_train, black_test = torch.utils.data.random_split(data_b, (80617, 1000))
+white_train, white_test = torch.utils.data.random_split(data_w, (749207, 10000))
+black_train, black_test = torch.utils.data.random_split(data_b, (809118, 10000))
 
 del data_w
 del data_b

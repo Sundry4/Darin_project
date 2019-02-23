@@ -1,6 +1,9 @@
 import numpy as np
 import pandas as pd
 import torch
+import time
+
+start = time.clock()
 
 from torch import utils
 import torch.nn as nn
@@ -12,10 +15,13 @@ from Dataset import white_train_loader, white_test_loader
 from Dataset import black_train_loader, black_test_loader
 from Net import Net
 
+print("Import:", time.clock() - start)
+start = time.clock()
+
 
 def train(epoch, data_loader):
-    # model.train()
-    # exp_lr_scheduler.step()
+    model.train()
+    exp_lr_scheduler.step()
 
     k = 0
     for data, target in data_loader:
@@ -30,7 +36,7 @@ def train(epoch, data_loader):
         # print(*output)
         loss = criterion(output, target)
         loss.backward()
-        if k % 50 == 0:
+        if k % 1000 == 0:
             print(loss.item())
         optimizer.step()
 
@@ -60,15 +66,31 @@ batch_size = 32
 
 model = Net()
 optimizer = optim.Adam(model.parameters(), lr=0.003)
-
-criterion = nn.CrossEntropyLoss()
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
+criterion = nn.CrossEntropyLoss()
 
 for i in range(40):
     train(i, white_train_loader)
 test_model(white_test_loader)
 test_model(white_train_loader)
 
-
-path = 'model.pth'
+path = 'model_white.pth'
 torch.save(model.state_dict(), path)
+
+print("White:", time.clock() - start)
+start = time.clock()
+
+model = Net()
+optimizer = optim.Adam(model.parameters(), lr=0.003)
+exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
+
+for i in range(40):
+    train(i, black_train_loader)
+test_model(black_test_loader)
+test_model(black_train_loader)
+
+path = 'model_black.pth'
+torch.save(model.state_dict(), path)
+
+print("Black:", time.clock() - start)
+start = time.clock()

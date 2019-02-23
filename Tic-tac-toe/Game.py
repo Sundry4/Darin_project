@@ -54,7 +54,7 @@ class Game:
         self.screen.blit(self.surface, (0, 0))
         pygame.display.update()
 
-        self.board = [[0] * self.N for i in range(self.N)]
+        self.board = np.array([[0] * self.N for i in range(self.N)])
         self.possible_moves = []
         for i in range(self.N):
             for j in range(self.N):
@@ -70,7 +70,7 @@ class Game:
         return pos
 
     def put_X(self, cell):
-        self.board[cell[0]][cell[1]] = -1
+        self.board[cell[0]][cell[1]] = 1
 
         pos = self.get_pos(cell)
         draw.line(self.surface, self.black, [pos[0] - 15, pos[1] - 15],
@@ -169,7 +169,7 @@ class Game:
         pygame.display.update()
 
         self.turns_amount = 0
-        self.board = [[0] * self.N for i in range(self.N)]
+        self.board = np.array([[0] * self.N for i in range(self.N)])
         self.possible_moves = []
         for i in range(self.N):
             for j in range(self.N):
@@ -192,6 +192,8 @@ class Game:
             else:
                 self.put_O(cell)
                 curr_player = player_one
+
+            self.board *= -1
 
             # win condition check
             cells = self.check_win_condition(cell)
