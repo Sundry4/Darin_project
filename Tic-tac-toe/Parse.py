@@ -23,9 +23,10 @@ def parse(path):
     k = 0
     for line in file:
         k += 1
-        if k == 10000:
+        if k <= 600000:
+            continue
+        if k == 900000:
             break
-
         game = line.split()
         if game[0] == 'draw':
             continue
@@ -38,6 +39,7 @@ def parse(path):
                 white.append(game[1:])
             else:
                 black.append(game[1:])
+
     return white, black
 
 

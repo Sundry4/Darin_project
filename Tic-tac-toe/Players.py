@@ -69,13 +69,13 @@ class OMGPlayer:
     def __init__(self, is_black):
         self.model = Net()
         if is_black:
-            self.model.load_state_dict(torch.load("model_black.pth"))
+            self.model.load_state_dict(torch.load("model_black3.pth"))
         else:
-            self.model.load_state_dict(torch.load("model_white.pth"))
+            self.model.load_state_dict(torch.load("model_white3.pth"))
         self.model.eval()
 
     def move_(self, possible_moves, board):
-        time.sleep(1)  # delay for making you believe, that model needs to think
+        # time.sleep(1)  # delay for making you believe, that model needs to think
 
         output = self.model(torch.from_numpy(np.array(board)).type(torch.FloatTensor))
         while True:

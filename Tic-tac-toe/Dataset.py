@@ -8,7 +8,7 @@ import torch.utils.data
 field_size = 15
 
 
-# returns tensors of boards (1 - your stone, -1 - opponent's stone, 0 - empty cell)
+# returns tensors of boards (1 - black stone, -1 - white stone, 0 - empty cell)
 # and labels (stone positions which are numbers from 0 to 224)
 def create_dataset_white():
     data = []
@@ -43,7 +43,7 @@ def create_dataset_white():
     return dataset
 
 
-# returns tensors of boards (1 - your stone, -1 - opponent's stone, 0 - empty cell)
+# returns tensors of boards (1 - black stone, -1 - white stone, 0 - empty cell)
 # and labels (stone positions which are numbers from 0 to 224)
 def create_dataset_black():
     data = []
@@ -81,8 +81,8 @@ def create_dataset_black():
 data_w = create_dataset_white()
 data_b = create_dataset_black()
 
-white_train, white_test = torch.utils.data.random_split(data_w, (749207, 10000))
-black_train, black_test = torch.utils.data.random_split(data_b, (809118, 10000))
+white_train, white_test = torch.utils.data.random_split(data_w, (2323071, 10000))
+black_train, black_test = torch.utils.data.random_split(data_b, (2784467, 10000))
 
 del data_w
 del data_b

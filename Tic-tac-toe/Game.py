@@ -79,7 +79,7 @@ class Game:
                   [pos[0] + 15, pos[1] - 15], 6)
 
     def put_O(self, cell):
-        self.board[cell[0]][cell[1]] = 1
+        self.board[cell[0]][cell[1]] = -1
 
         pos = self.get_pos(cell)
         draw.circle(self.surface, self.red, pos, 20, 5)
@@ -192,8 +192,6 @@ class Game:
             else:
                 self.put_O(cell)
                 curr_player = player_one
-
-            self.board *= -1
 
             # win condition check
             cells = self.check_win_condition(cell)
