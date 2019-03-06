@@ -69,9 +69,9 @@ class OMGPlayer:
     def __init__(self, is_black):
         self.model = Net()
         if is_black:
-            self.model.load_state_dict(torch.load("model_black3.pth"))
+            self.model.load_state_dict(torch.load("model_black11.pth"))
         else:
-            self.model.load_state_dict(torch.load("model_white3.pth"))
+            self.model.load_state_dict(torch.load("model_white11.pth"))
         self.model.eval()
 
     def move_(self, possible_moves, board):

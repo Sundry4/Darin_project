@@ -1,6 +1,3 @@
-import time
-
-
 def parse(path):
     dic = {'a': 1, 'b': 2,
            'c': 3, 'd': 4,
@@ -23,10 +20,9 @@ def parse(path):
     k = 0
     for line in file:
         k += 1
-        if k <= 600000:
-            continue
-        if k == 900000:
+        if k == 50000:
             break
+
         game = line.split()
         if game[0] == 'draw':
             continue
@@ -43,7 +39,7 @@ def parse(path):
     return white, black
 
 
-path = 'C:/Users/ashab.DESKTOP-4CJ6TE5/Home Work/Darin/train-1.renju'
+path = 'C:/Darin/Tic-tac-toe/train-1.renju'
 # 1984694 lines
 
 white_data, black_data = parse(path)

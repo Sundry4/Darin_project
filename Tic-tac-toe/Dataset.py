@@ -26,13 +26,14 @@ def create_dataset_white():
 
             is_black = not is_black
 
-    x = [np.array(data[i]) for i in range(len(data))]
-    data_x = torch.stack([torch.from_numpy(i).type(torch.FloatTensor) for i in x])
+    with torch.cuda.device(0):
+        x = [np.array(data[i]) for i in range(len(data))]
+        data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.FloatTensor) for i in x])
 
-    y = [labels[i] for i in range(len(labels))]
-    data_y = torch.stack([torch.tensor(i) for i in y])
+        y = [labels[i] for i in range(len(labels))]
+        data_y = torch.stack([torch.tensor(i).cuda() for i in y])
 
-    dataset = utils.data.TensorDataset(data_x, data_y)
+        dataset = utils.data.TensorDataset(data_x, data_y)
 
     del data
     del labels
@@ -61,13 +62,14 @@ def create_dataset_black():
 
             is_black = not is_black
 
-    x = [np.array(data[i]) for i in range(len(data))]
-    data_x = torch.stack([torch.from_numpy(i).type(torch.FloatTensor) for i in x])
+    with torch.cuda.device(0):
+        x = [np.array(data[i]) for i in range(len(data))]
+        data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.FloatTensor) for i in x])
 
-    y = [labels[i] for i in range(len(labels))]
-    data_y = torch.stack([torch.tensor(i) for i in y])
+        y = [labels[i] for i in range(len(labels))]
+        data_y = torch.stack([torch.tensor(i).cuda() for i in y])
 
-    dataset = utils.data.TensorDataset(data_x, data_y)
+        dataset = utils.data.TensorDataset(data_x, data_y)
 
     del data
     del labels
@@ -79,21 +81,23 @@ def create_dataset_black():
 
 
 data_w = create_dataset_white()
-data_b = create_dataset_black()
-
-white_train, white_test = torch.utils.data.random_split(data_w, (2323071, 10000))
-black_train, black_test = torch.utils.data.random_split(data_b, (2784467, 10000))
-
+white_train, white_test = torch.utils.data.random_split(data_w, (len(data_w) - 100, 100))
 del data_w
+
+data_b = create_dataset_black()
+black_train, black_test = torch.utils.data.random_split(data_b, (len(data_b) - 100, 100))
 del data_b
 
-batch_size = 50
-white_train_loader = torch.utils.data.DataLoader(white_train, batch_size, shuffle=True)
-white_test_loader = torch.utils.data.DataLoader(white_test, batch_size, shuffle=True)
-black_train_loader = torch.utils.data.DataLoader(black_train, batch_size, shuffle=True)
-black_test_loader = torch.utils.data.DataLoader(black_test, batch_size, shuffle=True)
+batch_size = 64
 
+white_train_loader = torch.utils.data.DataLoader(white_train, batch_size, shuffle=True)
 del white_train
+
+white_test_loader = torch.utils.data.DataLoader(white_test, batch_size, shuffle=True)
 del white_test
+
+black_train_loader = torch.utils.data.DataLoader(black_train, batch_size, shuffle=True)
 del black_train
+
+black_test_loader = torch.utils.data.DataLoader(black_test, batch_size, shuffle=True)
 del black_test

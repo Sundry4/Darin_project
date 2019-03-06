@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 import torch
 import time
+import warnings
+warnings.filterwarnings("ignore")
 
 from torch import utils
 import torch.nn as nn
@@ -37,7 +39,7 @@ def train(epoch, data_loader):
         # print(*output)
         loss = criterion(output, target)
         loss.backward()
-        if k % 10000 == 0:
+        if k % 1000 == 0:
             print(loss.item())
         optimizer.step()
 
@@ -66,7 +68,7 @@ def test_model(data_loader):
 # ------------  white  ------------
 
 model = Net()
-model.load_state_dict(torch.load("model_white2.pth"))
+model.load_state_dict(torch.load("model_white8.pth"))
 model.eval()
 
 optimizer = optim.Adam(model.parameters(), lr=0.003)
@@ -74,16 +76,17 @@ exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
 criterion = nn.CrossEntropyLoss()
 
 if torch.cuda.is_available():
+    print("Available")
     model = model.cuda()
     criterion = criterion.cuda()
 
 for i in range(40):
-    print("EPOCH:", i)
+    print("EPOCH:", i + 1)
     train(i, white_train_loader)
 test_model(white_test_loader)
 test_model(white_train_loader)
 
-path = 'model_white3.pth'
+path = 'model_white9.pth'
 torch.save(model.state_dict(), path)
 
 print("White:", time.clock() - start)
@@ -92,7 +95,7 @@ start = time.clock()
 # ------------  black  ------------
 
 model = Net()
-model.load_state_dict(torch.load("model_black2.pth"))
+model.load_state_dict(torch.load("model_black8.pth"))
 model.eval()
 
 optimizer = optim.Adam(model.parameters(), lr=0.003)
@@ -103,12 +106,12 @@ if torch.cuda.is_available():
     criterion = criterion.cuda()
 
 for i in range(40):
-    print("EPOCH:", i)
+    print("EPOCH:", i + 1)
     train(i, black_train_loader)
 test_model(black_test_loader)
 test_model(black_train_loader)
 
-path = 'model_black3.pth'
+path = 'model_black9.pth'
 torch.save(model.state_dict(), path)
 
 print("Black:", time.clock() - start)
