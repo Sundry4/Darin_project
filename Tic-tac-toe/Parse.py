@@ -1,3 +1,5 @@
+import random
+
 def parse(path):
     dic = {'a': 1, 'b': 2,
            'c': 3, 'd': 4,
@@ -20,7 +22,7 @@ def parse(path):
     k = 0
     for line in file:
         k += 1
-        if k == 50000:
+        if k == 1000:
             break
 
         game = line.split()
@@ -36,10 +38,13 @@ def parse(path):
             else:
                 black.append(game[1:])
 
+    random.shuffle(white)
+    random.shuffle(black)
+
     return white, black
 
 
-path = 'C:/Darin/Tic-tac-toe/train-1.renju'
+path = 'C:/Users/ashab.DESKTOP-4CJ6TE5/Home Work/Darin/train-1.renju'
 # 1984694 lines
 
-white_data, black_data = parse(path)
+data_white, data_black = parse(path)
