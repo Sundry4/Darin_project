@@ -4,19 +4,20 @@ import torch
 import time
 import warnings
 
-warnings.filterwarnings("ignore")
-
 from torch import utils
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim import lr_scheduler
 
+from Dataset_shift import *
+from Net import *
+warnings.filterwarnings("ignore")
+
 start = time.clock()
 
-from Dataset_shift import white_train_loader, white_test_loader
-from Dataset_shift import black_train_loader, black_test_loader
-from Net import *
+black_train_loader, black_test_loader = form_dataset(player=1)
+white_train_loader, white_test_loader = form_dataset(player=0)
 
 print("Imported:", time.clock() - start)
 start = time.clock()
@@ -39,16 +40,15 @@ def train(epoch, data_loader):
         # print(*output)
         loss = criterion(output, target)
         loss.backward()
-        if k % 1000 == 0:
+        if k % 5000 == 0:
             print(loss.item())
+            k = 0
         optimizer.step()
 
     print()
 
 
 def V_train(epoch, data_loader):
-    alpha = 0.8
-
     model.train()
     exp_lr_scheduler.step()
 
@@ -70,13 +70,14 @@ def V_train(epoch, data_loader):
         loss_p = criterion_p(output_p, target_p)
         loss_V = criterion_V(output_V, target_V)
 
-        loss = loss_V * alpha
+        loss = loss_V
         if target_V[0] == 1:
             loss += loss_p
 
         loss.backward()
-        if k % 10000 == 0:
+        if k % 5000 == 0:
             print(loss.item())
+            k = 0
         optimizer.step()
 
     print()
@@ -106,12 +107,9 @@ def test_model(data_loader):
 
 # ------------  white  ------------
 
-model_old = Net()
-model_old.load_state_dict(torch.load("model_white11.pth"))
-model_old.eval()
-
 model = VNet()
-model.features = model_old.features
+model.load_state_dict(torch.load("model_white_V1.pth"))
+model.eval()
 
 optimizer = optim.Adam(model.parameters(), lr=0.003)
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
@@ -123,14 +121,14 @@ if torch.cuda.is_available():
     criterion_p = criterion_p.cuda()
     criterion_V = criterion_V.cuda()
 
-for i in range(20):
+for i in range(40):
     print("EPOCH:", i + 1)
     V_train(i, white_train_loader)
 
 test_model(white_test_loader)
 test_model(white_train_loader)
 
-path = 'model_white_V.pth'
+path = 'model_white_V2.pth'
 torch.save(model.state_dict(), path)
 
 print("White:", time.clock() - start)
@@ -138,12 +136,9 @@ start = time.clock()
 
 # ------------  black  ------------
 
-model_old = Net()
-model_old.load_state_dict(torch.load("model_black11.pth"))
-model_old.eval()
-
 model = VNet()
-model.features = model_old.features
+model.load_state_dict(torch.load("model_black_V1.pth"))
+model.eval()
 
 optimizer = optim.Adam(model.parameters(), lr=0.003)
 exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
@@ -151,16 +146,17 @@ criterion_p = nn.CrossEntropyLoss()
 criterion_V = nn.MSELoss()
 
 if torch.cuda.is_available():
+    model = model.cuda()
     criterion_p = criterion_p.cuda()
     criterion_V = criterion_V.cuda()
 
-for i in range(20):
+for i in range(40):
     print("EPOCH:", i + 1)
-    train_V(i, black_train_loader)
+    V_train(i, black_train_loader)
 test_model(black_test_loader)
 test_model(black_train_loader)
 
-path = 'model_black_V.pth'
+path = 'model_black_V2.pth'
 torch.save(model.state_dict(), path)
 
 print("Black:", time.clock() - start)

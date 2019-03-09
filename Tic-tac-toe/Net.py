@@ -121,6 +121,9 @@ class VNet(nn.Module):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
 
+        nn.init.xavier_uniform_(self.classifier1.weight)
+        nn.init.xavier_uniform_(self.classifier2.weight)
+
     def forward(self, x):
         x = x.view(-1, 1, 15, 15)
         x = self.features(x)
@@ -129,4 +132,4 @@ class VNet(nn.Module):
         x1 = self.classifier1(x)
         x2 = self.classifier2(x)
 
-        return x1, x2
+        return F.softmax(x1, dim=1), x2

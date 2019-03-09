@@ -27,37 +27,38 @@ def find_max_min(game):
 
 # returns tensors of boards (1 - black stone, -1 - white stone, 0 - empty cell)
 # and labels (stone positions which are numbers from 0 to 224)
-def create_dataset(data, player):
+def create_dataset_V_no_shift(data, V, player):
     boards = []
     labels = []
     for game in data:
-        for shift in find_max_min(game):
-            board = [[0] * field_size for i in range(field_size)]
-            is_black = True
-            for turn in game:
-                if is_black == player:
-                    data.append(deepcopy(board))
-                    labels.append((turn[0] - 1 + shift[0]) * 15 + turn[1] - 1 + shift[1])
-                    board[turn[0] - 1 + shift[0]][turn[1] - 1 + shift[1]] = 1
-                else:
-                    board[turn[0] - 1 + shift[0]][turn[1] - 1 + shift[1]] = -1
+        board = [[0] * field_size for i in range(field_size)]
+        is_black = True
+        for turn in game:
+            if player == is_black:
+                boards.append(deepcopy(board))
+                labels.append([(turn[0] - 1) * 15 + turn[1] - 1, V])
 
-                is_black = not is_black
+            if is_black:
+                board[turn[0] - 1][turn[1] - 1] = 1
+            else:
+                board[turn[0] - 1][turn[1] - 1] = -1
 
-    x = [np.array(data[i]) for i in range(len(data))]
-    data_x = torch.stack([torch.from_numpy(i).type(torch.FloatTensor) for i in x])
+            is_black = not is_black
+
+    x = [np.array(boards[i]) for i in range(len(boards))]
+    del boards
+    data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.FloatTensor) for i in x])
+    del x
 
     y = [labels[i] for i in range(len(labels))]
-    data_y = torch.stack([torch.tensor(i) for i in y])
+    del labels
+    data_y = torch.stack([torch.tensor(i).cuda() for i in y])
+    del y
 
     dataset = utils.data.TensorDataset(data_x, data_y)
-
-    del boards
-    del labels
-    del x
-    del y
     del data_x
     del data_y
+
     return dataset
 
 
@@ -72,20 +73,22 @@ def create_dataset_V(data, V, player):
                 if player == is_black:
                     boards.append(deepcopy(board))
                     labels.append([(turn[0] - 1 + shift[0]) * 15 + turn[1] - 1 + shift[1], V])
-                    board[turn[0] - 1 + shift[0]][turn[1] - 1 + shift[1]] = 1
+
+                if is_black:
+                    board[turn[0] - 1][turn[1] - 1] = 1
                 else:
-                    board[turn[0] - 1 + shift[0]][turn[1] - 1 + shift[1]] = -1
+                    board[turn[0] - 1][turn[1] - 1] = -1
 
                 is_black = not is_black
 
     x = [np.array(boards[i]) for i in range(len(boards))]
     del boards
-    data_x = torch.stack([torch.from_numpy(i).type(torch.FloatTensor) for i in x])
+    data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.FloatTensor) for i in x])
     del x
 
     y = [labels[i] for i in range(len(labels))]
     del labels
-    data_y = torch.stack([torch.tensor(i) for i in y])
+    data_y = torch.stack([torch.tensor(i).cuda() for i in y])
     del y
 
     dataset = utils.data.TensorDataset(data_x, data_y)
@@ -96,8 +99,6 @@ def create_dataset_V(data, V, player):
 
 
 def form_dataset(player):
-    batch_size = 64
-
     V = player * 2 - 1
 
     dataset_1 = create_dataset_V(data_black, V, player)
@@ -120,8 +121,3 @@ def form_dataset(player):
     )
 
     return train_loader, test_loader
-
-
-black_train_loader, black_test_loader = form_dataset(player=1)
-white_train_loader, white_test_loader = form_dataset(player=0)
-
