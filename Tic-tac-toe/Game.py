@@ -1,6 +1,7 @@
 import pygame
 from pygame import *
 from Players import *
+from copy import deepcopy
 
 
 class Game:
@@ -16,6 +17,14 @@ class Game:
     cell_width = 50
 
     def __init__(self, N):
+        self.black_pos = np.array([[0] * N for _ in range(N)])
+        self.white_pos = np.array([[0] * N for _ in range(N)])
+        self.turn = np.array([[1] * N for _ in range(N)])  # 1 for black, -1 for white
+        self.hist_1_black = np.array([[0] * N for _ in range(N)])
+        self.hist_1_white = np.array([[0] * N for _ in range(N)])
+        self.hist_2_black = np.array([[0] * N for _ in range(N)])
+        self.hist_2_white = np.array([[0] * N for _ in range(N)])
+
         self.turns_amount = 0
 
         self.N = N
@@ -54,7 +63,6 @@ class Game:
         self.screen.blit(self.surface, (0, 0))
         pygame.display.update()
 
-        self.board = np.array([[0] * self.N for i in range(self.N)])
         self.possible_moves = []
         for i in range(self.N):
             for j in range(self.N):
@@ -70,7 +78,9 @@ class Game:
         return pos
 
     def put_X(self, cell):
-        self.board[cell[0]][cell[1]] = 1
+        self.hist_2_black = deepcopy(self.hist_1_black)
+        self.hist_1_black = deepcopy(self.black_pos)
+        self.black_pos[cell[0]][cell[1]] = 1
 
         pos = self.get_pos(cell)
         draw.line(self.surface, self.black, [pos[0] - 15, pos[1] - 15],
@@ -79,19 +89,24 @@ class Game:
                   [pos[0] + 15, pos[1] - 15], 6)
 
     def put_O(self, cell):
-        self.board[cell[0]][cell[1]] = -1
+        self.hist_2_white = deepcopy(self.hist_1_white)
+        self.hist_1_white = deepcopy(self.white_pos)
+        self.white_pos[cell[0]][cell[1]] = 1
 
         pos = self.get_pos(cell)
         draw.circle(self.surface, self.red, pos, 20, 5)
 
-    def check_win_condition(self, last_move):
+    def check_win_condition(self, last_move, turn):
+        board = self.white_pos
+        if turn[0][0] == 1:
+            board = self.black_pos
+
         n = 3
         if self.N >= 5:
             n = 5
 
         x, y = last_move
-
-        winner = self.board[x][y]
+        winner = board[x][y]
 
         # vertical
         for i in range(n):
@@ -99,7 +114,7 @@ class Game:
             for j in range(i - n + y + 1, i + y + 1):
                 if j < 0 or j >= self.N:
                     continue
-                if winner != self.board[x][j]:
+                if winner != board[x][j]:
                     break
                 match_count += 1
             if match_count == n:
@@ -111,7 +126,7 @@ class Game:
             for j in range(i - n + x + 1, i + x + 1):
                 if j < 0 or j >= self.N:
                     continue
-                if winner != self.board[j][y]:
+                if winner != board[j][y]:
                     break
                 match_count += 1
             if match_count == n:
@@ -123,7 +138,7 @@ class Game:
             for j in range(i - n + 1, i + 1):
                 if x + j < 0 or x + j >= self.N or y + j < 0 or y + j >= self.N:
                     continue
-                if winner != self.board[x + j][y + j]:
+                if winner != board[x + j][y + j]:
                     break
                 match_count += 1
             if match_count == n:
@@ -134,7 +149,7 @@ class Game:
             for j in range(i - n + 1, i + 1):
                 if x - j < 0 or x - j >= self.N or y + j < 0 or y + j >= self.N:
                     continue
-                if winner != self.board[x - j][y + j]:
+                if winner != board[x - j][y + j]:
                     break
                 match_count += 1
             if match_count == n:
@@ -169,7 +184,15 @@ class Game:
         pygame.display.update()
 
         self.turns_amount = 0
-        self.board = np.array([[0] * self.N for i in range(self.N)])
+
+        self.black_pos = np.array([[0] * self.N for _ in range(self.N)])
+        self.white_pos = np.array([[0] * self.N for _ in range(self.N)])
+        self.turn = np.array([[1] * self.N for _ in range(self.N)])  # 1 for black, -1 for white
+        self.hist_1_black = np.array([[0] * self.N for _ in range(self.N)])
+        self.hist_1_white = np.array([[0] * self.N for _ in range(self.N)])
+        self.hist_2_black = np.array([[0] * self.N for _ in range(self.N)])
+        self.hist_2_white = np.array([[0] * self.N for _ in range(self.N)])
+
         self.possible_moves = []
         for i in range(self.N):
             for j in range(self.N):
@@ -183,7 +206,15 @@ class Game:
 
         curr_player = player_one
         while True:
-            cell = curr_player.move_(self.possible_moves, self.board)
+            state = torch.from_numpy(
+                        np.stack(
+                            (self.black_pos, self.white_pos, self.turn,
+                             self.hist_1_black, self.hist_1_white,
+                             self.hist_2_black, self.hist_2_white),
+                            axis=-1
+                        )
+            )
+            cell = curr_player.move_(self.possible_moves, state)
 
             self.turns_amount += 1
             if curr_player == player_one:
@@ -194,7 +225,7 @@ class Game:
                 curr_player = player_one
 
             # win condition check
-            cells = self.check_win_condition(cell)
+            cells = self.check_win_condition(cell, self.turn)
             if cells:
                 print("Amount of turns:", self.turns_amount)
                 pos1 = self.get_pos(cells[0])
@@ -207,6 +238,8 @@ class Game:
                 if curr_player == player_two:
                     winner = 'X'
                 self.end(winner)
+
+            self.turn *= -1
 
             # full board condition check
             if len(self.possible_moves) == 0:

@@ -6,13 +6,14 @@ from torch import utils
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+import torchvision
 
 
-class Net(nn.Module):
+class first_Net(nn.Module):
     size = 15
 
     def __init__(self):
-        super(Net, self).__init__()
+        super(first_Net, self).__init__()
 
         self.features = nn.Sequential(
             nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
@@ -68,26 +69,31 @@ class Net(nn.Module):
         return x
 
 
-class VNet(nn.Module):
+class Net(nn.Module):
     size = 15
 
     def __init__(self):
-        super(VNet, self).__init__()
+        super(Net, self).__init__()
 
         self.features = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),
+            nn.Conv2d(7, 16, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(inplace=True),
+
             nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(16),
             nn.ReLU(inplace=True),
+
             nn.MaxPool2d(kernel_size=2, stride=2),
+
             nn.Conv2d(16, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
+
             nn.Conv2d(32, 32, kernel_size=3, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
+
             nn.MaxPool2d(kernel_size=2, stride=2)
         )
 
@@ -125,11 +131,12 @@ class VNet(nn.Module):
         nn.init.xavier_uniform_(self.classifier2.weight)
 
     def forward(self, x):
-        x = x.view(-1, 1, 15, 15)
+        x = x.view(-1, 7, self.size, self.size)
         x = self.features(x)
         x = x.view(x.size(0), -1)
         x = self.classifier(x)
         x1 = self.classifier1(x)
         x2 = self.classifier2(x)
 
+        # x1 = x1 / x1.sum(0).expand_as(x1)
         return F.softmax(x1, dim=1), x2
