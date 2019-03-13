@@ -4,10 +4,8 @@ import pygame
 import torch
 import numpy as np
 from Net import *
-
-
-def normal(x):
-    return x / sum(x)
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 class HumanPlayer:
@@ -90,24 +88,28 @@ class OMGPlayer:
             output[0][number] -= 100
 
 
+def normal(x):
+    return x / sum(x)
+
+
 class OMGVPlayer:
     board_size = 15
 
     def __init__(self, is_black):
-        self.model = VNet()
+        self.model = Net()
         if is_black:
-            self.model.load_state_dict(torch.load("model_black_V2.pth"))
+            self.model.load_state_dict(torch.load("model7_black.pth"))
         else:
-            self.model.load_state_dict(torch.load("model_white_V2.pth"))
+            self.model.load_state_dict(torch.load("model7_white.pth"))
         self.model.eval()
 
     def move_(self, possible_moves, board):
         # time.sleep(1)  # delay for making you believe, that model needs to think
 
-        output = self.model(torch.from_numpy(np.array(board)).type(torch.FloatTensor))
-        policy = normal(list(output[0].detach().numpy()[0]))
+        data = torch.from_numpy(np.array(board)).type(torch.FloatTensor)
+        output_p, _ = self.model(data)
+        policy = output_p.detach().numpy()[0]
 
-        print(output[1].item())
         while True:
             actions = range(225)
             number = np.random.choice(actions, 1, p=policy)[0]

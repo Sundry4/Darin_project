@@ -138,5 +138,5 @@ class Net(nn.Module):
         x1 = self.classifier1(x)
         x2 = self.classifier2(x)
 
-        # x1 = x1 / x1.sum(0).expand_as(x1)
+        # print(x1[0])
         return F.softmax(x1, dim=1), x2
