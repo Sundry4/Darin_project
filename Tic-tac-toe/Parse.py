@@ -1,7 +1,7 @@
 import random
 
 
-def parse(path):
+def parse(start, end):
     dic = {'a': 1, 'b': 2,
            'c': 3, 'd': 4,
            'e': 5, 'f': 6,
@@ -16,18 +16,15 @@ def parse(path):
            'x': 23, 'y': 24,
            'z': 25}
 
+    path = 'C:/Users/renjucoach/Darin/train-1.renju'
     file = open(path, 'r')
 
     white = []
     black = []
-    k = 0
-    for line in file:
-        k += 1
-
-        if k < 50000:
+    for k, line in enumerate(file):
+        if k < start:
             continue
-
-        if k == 70000:
+        if k > end:
             break
 
         game = line.split()
@@ -43,13 +40,7 @@ def parse(path):
             else:
                 black.append(game[1:])
 
-    random.shuffle(white)
-    random.shuffle(black)
-
     return white, black
 
 
-path = 'C:/Darin/Tic-tac-toe/train-1.renju'
 # 1984694 lines
-
-data_white, data_black = parse(path)

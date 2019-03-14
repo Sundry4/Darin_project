@@ -211,7 +211,7 @@ class Game:
                             (self.black_pos, self.white_pos, self.turn,
                              self.hist_1_black, self.hist_1_white,
                              self.hist_2_black, self.hist_2_white),
-                            axis=-1
+                            axis=0
                         )
             )
             cell = curr_player.move_(self.possible_moves, state)

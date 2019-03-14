@@ -6,6 +6,7 @@ import numpy as np
 from Net import *
 import torch.nn as nn
 import torch.nn.functional as F
+import os
 
 
 class HumanPlayer:
@@ -65,29 +66,6 @@ class ProVis:
         return [cell[0], cell[1]]
 
 
-class OMGPlayer:
-    board_size = 15
-
-    def __init__(self, is_black):
-        self.model = Net()
-        if is_black:
-            self.model.load_state_dict(torch.load("model_black11.pth"))
-        else:
-            self.model.load_state_dict(torch.load("model_white11.pth"))
-        self.model.eval()
-
-    def move_(self, possible_moves, board):
-        # time.sleep(1)  # delay for making you believe, that model needs to think
-
-        output = self.model(torch.from_numpy(np.array(board)).type(torch.FloatTensor))
-        while True:
-            number = output.data.max(1, keepdim=True)[1].item()
-            cell = [number // self.board_size, number % self.board_size]
-            if cell in possible_moves:
-                return cell
-            output[0][number] -= 100
-
-
 def normal(x):
     return x / sum(x)
 
@@ -97,22 +75,31 @@ class OMGVPlayer:
 
     def __init__(self, is_black):
         self.model = Net()
+        # if torch.cuda.device_count() > 1:
+        #     self.model = torch.nn.DataParallel(self.model)
+
         if is_black:
-            self.model.load_state_dict(torch.load("model7_black.pth"))
+            self.model.load_state_dict(torch.load("model7_black_21.pth"))
         else:
-            self.model.load_state_dict(torch.load("model7_white.pth"))
+            self.model.load_state_dict(torch.load("model7_white_21.pth"))
+
         self.model.eval()
 
     def move_(self, possible_moves, board):
         # time.sleep(1)  # delay for making you believe, that model needs to think
 
-        data = torch.from_numpy(np.array(board)).type(torch.FloatTensor)
+        data = torch.from_numpy(np.array(board)).cuda().type(torch.FloatTensor)
         output_p, _ = self.model(data)
         policy = output_p.detach().numpy()[0]
 
         while True:
-            actions = range(225)
-            number = np.random.choice(actions, 1, p=policy)[0]
+            # actions = range(225)
+            # number = np.random.choice(actions, 1, p=policy)[0]
+            # cell = [number // self.board_size, number % self.board_size]
+            # if cell in possible_moves:
+            #     return cell
+            number = output_p.data.max(1, keepdim=True)[1].item()
             cell = [number // self.board_size, number % self.board_size]
             if cell in possible_moves:
                 return cell
+            output_p[0][number] -= 100

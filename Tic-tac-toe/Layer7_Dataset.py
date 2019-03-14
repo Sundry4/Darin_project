@@ -5,16 +5,11 @@ import torch
 from torch import utils
 import torch.utils.data
 import random
-# from keras.datasets import cifar10
 import warnings
 warnings.filterwarnings("ignore")
 
 
-path = 'C:/Users/ashab.DESKTOP-4CJ6TE5/Home Work/Darin/train-1.renju'
 board_size = 15
-
-start, end = 0, 500
-white, black = parse(path, start, end)
 
 
 def create_dataset_white():
@@ -58,7 +53,9 @@ def create_dataset_white():
 # 5 layer - white positions one turn ago
 # 6 layer - black positions two turns ago
 # 7 layer - white positions two turns ago
-def create_dataset(player):
+def create_dataset(player, start, end):
+    white, black = parse(start, end)
+
     data = white
     if player == 1:
         data = black
@@ -103,11 +100,11 @@ def create_dataset(player):
             is_black = not is_black
 
     X = [np.array(x[i]) for i in range(len(x))]
-    data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.cuda.FloatTensor) for i in X])
+    data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.FloatTensor) for i in X])
     del X
 
     Y = [y[i] for i in range(len(y))]
-    data_y = torch.stack([torch.tensor(i).cuda() for i in Y])
+    data_y = torch.stack([torch.tensor(i) for i in Y])
     del Y
 
     dataset = utils.data.TensorDataset(data_x, data_y)
@@ -117,17 +114,19 @@ def create_dataset(player):
     return dataset
 
 
-def form_dataset(player):
-    batch_size = 64
+def form_dataset(player, start, end):
+    batch_size = 2048
 
-    dataset = create_dataset(player)
+    dataset = create_dataset(player, start, end)
     # print(dataset)
     # print(*dataset[0])
     train, test = torch.utils.data.random_split(dataset, (len(dataset) - 100, 100))
     del dataset
 
-    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=True)
+    train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True, pin_memory=True,
+                                               num_workers=torch.cuda.device_count() * 4, drop_last=False)
+    test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=True, pin_memory=True,
+                                              num_workers=torch.cuda.device_count() * 4, drop_last=False)
     del train
     del test
 

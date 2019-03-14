@@ -23,10 +23,10 @@ class first_Net(nn.Module):
             nn.BatchNorm2d(16),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
-            nn.Conv2d(32, 32, kernel_size=3, padding=1),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2)
@@ -86,11 +86,11 @@ class Net(nn.Module):
 
             nn.MaxPool2d(kernel_size=2, stride=2),
 
-            nn.Conv2d(16, 32, kernel_size=3, padding=1),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
 
-            nn.Conv2d(32, 32, kernel_size=3, padding=1),
+            nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(32),
             nn.ReLU(inplace=True),
 
@@ -98,15 +98,15 @@ class Net(nn.Module):
         )
 
         self.classifier = nn.Sequential(
-            nn.Dropout(p=0.5),
+            # nn.Dropout(p=0.5),
             nn.Linear(32 * 3 * 3, 512),
             nn.BatchNorm1d(512),
             nn.ReLU(inplace=True),
-            nn.Dropout(p=0.4),
+            # nn.Dropout(p=0.4),
             nn.Linear(512, 512),
             nn.BatchNorm1d(512),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.4),
+            nn.ReLU(inplace=True)
+            # nn.Dropout(p=0.4),
         )
 
         self.classifier1 = nn.Linear(512, 15 * 15)
@@ -138,5 +138,4 @@ class Net(nn.Module):
         x1 = self.classifier1(x)
         x2 = self.classifier2(x)
 
-        # print(x1[0])
-        return F.softmax(x1, dim=1), x2
+        return x1, x2

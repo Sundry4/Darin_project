@@ -8,6 +8,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.optim import lr_scheduler
+import os
 
 from Layer7_Dataset import form_dataset
 from Net import *
@@ -15,6 +16,19 @@ import warnings
 warnings.filterwarnings("ignore")
 
 start = time.clock()
+
+
+def gpu_to_common(model_):
+    new_state_dict = {}
+    for key, value in model_.state_dict().items():
+        new_key = key[7:]
+        new_state_dict[new_key] = value
+
+    return new_state_dict
+
+
+def run():
+    torch.multiprocessing.freeze_support()
 
 
 def train(data_loader):
@@ -32,7 +46,7 @@ def train(data_loader):
         loss.backward()
         optimizer.step()
 
-        if k % 100 == 0:
+        if k % 100000 == 0:
             print(loss.item())
 
     print()
@@ -56,56 +70,70 @@ def test_model(data_loader):
                                                100. * correct / len(data_loader.dataset)))
 
 
-# ------------  white  ------------
+if __name__ == "__main__":
+    run()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    size = 100000
+    for number in range(1, 21):
+        print("CURR BATCH:", number, '\n')
 
-model = Net()
+        # ------------  white  ------------
 
-optimizer = optim.Adam(model.parameters(), lr=0.003)
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
-criterion = nn.CrossEntropyLoss()
+        path = 'model7_white_{}.pth'
+        model = Net()
+        model.load_state_dict(torch.load(path.format(number)))
+        model.eval()
 
-model = model.to(device)
-criterion = criterion.to(device)
+        if torch.cuda.device_count() > 1:
+            model = torch.nn.DataParallel(model)
 
-data_train, data_test = form_dataset(0)
-for i in range(20):
-    print("EPOCH:", i + 1)
-    train(data_train)
+        optimizer = optim.Adam(model.parameters(), lr=0.003)
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
+        criterion = nn.CrossEntropyLoss().to(device)
 
-test_model(data_test)
-test_model(data_train)
+        model = model.to(device)
 
-path = 'model7_white.pth'
-torch.save(model.state_dict(), path)
+        data_train, data_test = form_dataset(0, (number - 1) * size, number * size)
+        for i in range(40):
+            print("EPOCH:", i + 1)
+            train(data_train)
 
-del data_train
-del data_test
+        test_model(data_test)
+        test_model(data_train)
 
-print("White:", time.clock() - start)
-start = time.clock()
+        torch.save(gpu_to_common(model), path.format(number + 1))
 
-# ------------  black  ------------
+        del data_train
+        del data_test
 
-model = Net()
+        print("White:", time.clock() - start)
+        start = time.clock()
 
-optimizer = optim.Adam(model.parameters(), lr=0.003)
-exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
-criterion = nn.CrossEntropyLoss()
+        # ------------  black  ------------
 
-model = model.to(device)
-criterion = criterion.to(device)
+        path = 'model7_black_{}.pth'
+        model = Net()
+        model.load_state_dict(torch.load(path.format(number)))
+        model.eval()
 
+        if torch.cuda.device_count() > 1:
+            model = torch.nn.DataParallel(model)
 
-data_train, data_test = form_dataset(1)
-for i in range(40):
-    print("EPOCH:", i + 1)
-    train(data_train)
-test_model(data_test)
-test_model(data_train)
+        optimizer = optim.Adam(model.parameters(), lr=0.003)
+        exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
+        criterion = nn.CrossEntropyLoss()
 
-path = 'model7_black.pth'
-torch.save(model.state_dict(), path)
+        model = model.to(device)
+        criterion = criterion.to(device)
 
-print("Black:", time.clock() - start)
+        data_train, data_test = form_dataset(1, (number - 1) * size, number * size)
+        for i in range(40):
+            print("EPOCH:", i + 1)
+            train(data_train)
+        test_model(data_test)
+        test_model(data_train)
+
+        torch.save(gpu_to_common(model), path.format(number + 1))
+
+        print("Black:", time.clock() - start)
