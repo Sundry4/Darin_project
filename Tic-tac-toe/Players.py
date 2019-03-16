@@ -75,9 +75,6 @@ class OMGVPlayer:
 
     def __init__(self, is_black):
         self.model = Net()
-        # if torch.cuda.device_count() > 1:
-        #     self.model = torch.nn.DataParallel(self.model)
-
         if is_black:
             self.model.load_state_dict(torch.load("model7_black_21.pth"))
         else:
@@ -85,11 +82,17 @@ class OMGVPlayer:
 
         self.model.eval()
 
+        self.V = VNet()
+        self.V.load_state_dict(torch.load("model7_V_21.pth"))
+        self.V.eval()
+
     def move_(self, possible_moves, board):
         # time.sleep(1)  # delay for making you believe, that model needs to think
 
         data = torch.from_numpy(np.array(board)).cuda().type(torch.FloatTensor)
         output_p, _ = self.model(data)
+        v = F.softmax(self.V(data), dim=1)
+        print((v[0][0] - v[0][1]).item())
         policy = output_p.detach().numpy()[0]
 
         while True:
