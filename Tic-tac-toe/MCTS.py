@@ -1,5 +1,11 @@
 import numpy as np
 from copy import deepcopy
+import time
+
+import torch
+from torch import utils
+import torch.nn as nn
+import torch.nn.functional as F
 
 
 class MCTS:
@@ -29,7 +35,8 @@ class MCTS:
         N = [0] * self.board_size**2
         data = {'': [policy, N, Q]}
 
-        for i in range(iterations):
+        # making simulations, every single one starts from root state
+        for _ in range(iterations): # it may be better to change it to time
             data = step(data, possible_moves, board)
 
         return F.softmax(data[''][1], dim=1) # returning distribution adjusted by N
@@ -61,7 +68,7 @@ class MCTS:
                          )
         return board
 
-    # function, that converts set to string, because sets aren't suitable for dicts :(
+    # function, that converts set to string, because sets aren't suitable for dicts as keys :(
     def convert(self, x):
         string = ''
         for i in x:
