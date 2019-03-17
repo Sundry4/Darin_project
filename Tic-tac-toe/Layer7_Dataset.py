@@ -12,38 +12,22 @@ warnings.filterwarnings("ignore")
 board_size = 15
 
 
-def create_dataset_white():
-    data = []
-    labels = []
-    for game in white:
-        board = [[0] * board_size for i in range(board_size)]
-        is_black = True
-        for turn in game:
-            if is_black:
-                board[turn[0] - 1][turn[1] - 1] = 1
-            else:
-                data.append(deepcopy(board))
-                labels.append((turn[0] - 1) * 15 + turn[1] - 1)
-                board[turn[0] - 1][turn[1] - 1] = -1
+def find_max_min(game):
+    max_x = game[0][0]
+    min_x = game[0][0]
+    max_y = game[0][1]
+    min_y = game[0][1]
 
-            is_black = not is_black
+    for i in game:
+        max_x = max(max_x, i[0])
+        min_x = min(min_x, i[0])
+        max_y = max(max_y, i[1])
+        min_y = min(min_y, i[1])
 
-    with torch.cuda.device(0):
-        x = [np.array(data[i]) for i in range(len(data))]
-        data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.FloatTensor) for i in x])
-
-        y = [labels[i] for i in range(len(labels))]
-        data_y = torch.stack([torch.tensor(i).cuda() for i in y])
-
-        dataset = utils.data.TensorDataset(data_x, data_y)
-
-    del data
-    del labels
-    del x
-    del y
-    del data_x
-    del data_y
-    return dataset
+    shifts = [(board_size - max_x, 0), (-min_x + 1, 0), (0, board_size - max_y), (0, -min_y + 1),
+              (board_size - max_x, board_size - max_y), (-min_x + 1, board_size - max_y),
+              (-min_x + 1, board_size - max_y), (-min_x + 1, -min_y + 1)]
+    return shifts
 
 
 # 1 layer - black positions
@@ -63,41 +47,46 @@ def create_dataset(player, start, end):
     x = []
     y = []
     for game in data:
-        black_pos = np.array([[0] * board_size for _ in range(board_size)])
-        white_pos = np.array([[0] * board_size for _ in range(board_size)])
-        turn = np.array([[1] * board_size for _ in range(board_size)])  # 1 for black, -1 for white
-        hist_1_black = np.array([[0] * board_size for _ in range(board_size)])
-        hist_1_white = np.array([[0] * board_size for _ in range(board_size)])
-        hist_2_black = np.array([[0] * board_size for _ in range(board_size)])
-        hist_2_white = np.array([[0] * board_size for _ in range(board_size)])
+        if len(game) < 2:
+            continue
 
-        is_black = True
-        for k, move in enumerate(game):
-            if player == is_black:
-                x.append(torch.from_numpy(
-                    np.stack(
-                        (black_pos, white_pos, turn,
-                         hist_1_black, hist_1_white,
-                         hist_2_black, hist_2_white),
-                        axis=0
-                    ))
-                )
-                y.append((move[0] - 1) * 15 + move[1] - 1)
+        shifts = [random.choice(find_max_min(game)), (0, 0)]
 
-            turn *= -1
+        for shift in shifts:
+            black_pos = np.array([[0] * board_size for _ in range(board_size)])
+            white_pos = np.array([[0] * board_size for _ in range(board_size)])
+            turn = np.array([[1] * board_size for _ in range(board_size)])  # 1 for black, -1 for white
+            hist_1_black = np.array([[0] * board_size for _ in range(board_size)])
+            hist_1_white = np.array([[0] * board_size for _ in range(board_size)])
+            hist_2_black = np.array([[0] * board_size for _ in range(board_size)])
+            hist_2_white = np.array([[0] * board_size for _ in range(board_size)])
 
-            hist_2_black = deepcopy(hist_1_black)
-            hist_2_white = deepcopy(hist_1_white)
+            is_black = True
+            for k, move in enumerate(game):
+                if player == is_black:
+                    x.append(torch.from_numpy(
+                        np.stack(
+                            (black_pos, white_pos, turn,
+                             hist_1_black, hist_1_white,
+                             hist_2_black, hist_2_white)
+                        ))
+                    )
+                    y.append((move[0] - 1 + shift[0]) * 15 + move[1] - 1 + shift[1])
 
-            hist_1_black = deepcopy(black_pos)
-            hist_1_white = deepcopy(white_pos)
+                turn *= -1
 
-            if is_black:
-                black_pos[move[0] - 1][move[1] - 1] = 1
-            else:
-                white_pos[move[0] - 1][move[1] - 1] = 1
+                hist_2_black = deepcopy(hist_1_black)
+                hist_2_white = deepcopy(hist_1_white)
 
-            is_black = not is_black
+                hist_1_black = deepcopy(black_pos)
+                hist_1_white = deepcopy(white_pos)
+
+                if is_black:
+                    black_pos[move[0] - 1 + shift[0]][move[1] - 1 + shift[1]] = 1
+                else:
+                    white_pos[move[0] - 1 + shift[0]][move[1] - 1 + shift[1]] = 1
+
+                is_black = not is_black
 
     X = [np.array(x[i]) for i in range(len(x))]
     data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.FloatTensor) for i in X])
@@ -118,9 +107,7 @@ def form_dataset(player, start, end):
     batch_size = 2048
 
     dataset = create_dataset(player, start, end)
-    # print(dataset)
-    # print(*dataset[0])
-    train, test = torch.utils.data.random_split(dataset, (len(dataset) - 100, 100))
+    train, test = torch.utils.data.random_split(dataset, (len(dataset) - 1000, 1000))
     del dataset
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True, pin_memory=True,
@@ -131,4 +118,3 @@ def form_dataset(player, start, end):
     del test
 
     return train_loader, test_loader
-

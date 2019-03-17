@@ -13,20 +13,20 @@ board_size = 15
 
 
 def find_max_min(game):
-    max_x = game[1][0]
-    min_x = game[1][0]
-    max_y = game[1][1]
-    min_y = game[1][1]
+    max_x = game[0][0]
+    min_x = game[0][0]
+    max_y = game[0][1]
+    min_y = game[0][1]
 
-    for i in game[1:]:
+    for i in game:
         max_x = max(max_x, i[0])
         min_x = min(min_x, i[0])
         max_y = max(max_y, i[1])
         min_y = min(min_y, i[1])
 
-    shifts = [(board_size - max_x, 0), (-min_x, 0), (0, board_size - max_y), (0, -max_y),
-              (board_size - max_x, board_size - max_y), (-min_x, board_size - max_y),
-              (-min_x, board_size - max_y), (-min_x, -max_y)]
+    shifts = [(board_size - max_x, 0), (-min_x + 1, 0), (0, board_size - max_y), (0, -min_y + 1),
+              (board_size - max_x, board_size - max_y), (-min_x + 1, board_size - max_y),
+              (-min_x + 1, board_size - max_y), (-min_x + 1, -min_y + 1)]
     return shifts
 
 
@@ -49,7 +49,7 @@ def create_dataset(start, end):
         if game[0] == 'white':
             winner = 1
 
-        shifts = [random.choice(find_max_min(game)), (0, 0)]
+        shifts = [random.choice(find_max_min(game[1:])), (0, 0)]
 
         for shift in shifts:
             black_pos = np.array([[0] * board_size for _ in range(board_size)])
