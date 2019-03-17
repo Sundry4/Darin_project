@@ -6,17 +6,18 @@ import torch
 from torch import utils
 import torch.nn as nn
 import torch.nn.functional as F
+from Net import *
 
 
 class MCTS:
     def __init__(self):
         self.model_black = Net()
-        self.model_black.load_state_dict(torch.load("model_black.pth"))
-        self.model.eval()
+        self.model_black.load_state_dict(torch.load("model7_black_21.pth"))
+        self.model_black.eval()
 
         self.model_white = Net()
-        self.model_white.load_state_dict(torch.load("model_white.pth"))
-        self.model.eval()
+        self.model_white.load_state_dict(torch.load("model7_white_21.pth"))
+        self.model_white.eval()
 
         self.board_size = 15
     def get_data(self, board):
@@ -27,21 +28,23 @@ class MCTS:
         if board[2][0][0].item() == -1:
             model = self.model_white
 
-        output, v = model(board)
+        data = torch.from_numpy(np.array(board)).type(torch.FloatTensor)
+        output, v = model(data)
         return F.softmax(output, dim=1).detach().numpy()[0], v.item()
 
     def get_policy(self, board, iterations, possible_moves): # possible move is set of numbers from 0 to 224
         policy, v = self.get_data(board)
         N = [0] * self.board_size**2
-        data = {'': [policy, N, Q]}
+        data = {str([set(), set()]): [policy, deepcopy(N), deepcopy(N)]}  # N matches Q at the beginning
 
         # making simulations, every single one starts from root state
         for _ in range(iterations): # it may be better to change it to time
-            data = step(data, possible_moves, board)
+            data = self.step(data, possible_moves, board)
 
-        return F.softmax(data[''][1], dim=1) # returning distribution adjusted by N
+        N = torch.FloatTensor(data[str([set(), set()])][1])
+        return F.softmax(N, dim=0) # returning distribution adjusted by N
 
-    def update_board(self, board, simulation):
+    def update_board(self, board, cell):
         black_pos, white_pos, turn, hist_1_black,\
         hist_1_white, hist_2_black, hist_2_white = board
 
@@ -49,33 +52,23 @@ class MCTS:
         if turn[0][0] == 1:
             is_black = True
 
-        for move in simulation:
-            cell = [move // 15, move % 15]
-            hist_2_black = deepcopy(hist_1_black)
-            hist_2_white = deepcopy(hist_1_white)
+        hist_2_black = deepcopy(hist_1_black)
+        hist_2_white = deepcopy(hist_1_white)
 
-            hist_1_black = deepcopy(black_pos)
-            hist_1_white = deepcopy(white_pos)
+        hist_1_black = deepcopy(black_pos)
+        hist_1_white = deepcopy(white_pos)
 
-            if is_black:
-                black_pos[cell[0]][cell[1]] = 1
-            else:
-                white_pos[cell[0]][cell[1]] = 1
-            turn *= -1
-            is_black = not is_black
+        if is_black:
+            black_pos[cell[0]][cell[1]] = 1
+        else:
+            white_pos[cell[0]][cell[1]] = 1
+        turn *= -1
 
         board = np.stack((black_pos, white_pos, turn,
                           hist_1_black, hist_1_white,
                           hist_2_black, hist_2_white)
                          )
         return board
-
-    # function, that converts set to string, because sets aren't suitable for dicts as keys :(
-    def convert(self, x):
-        string = ''
-        for i in x:
-            string += str(i)
-        return string
 
     def step(self, data, possible_moves, board):
         made_moves = [set(), set()] # 1st is black, 2nd is white
@@ -85,38 +78,52 @@ class MCTS:
         if board[2][0][0].item() == -1:
             is_white = True
 
-        while made_moves in data.keys():
-            curr_set = self.convert(made_moves)
+        winner = 0
+        while str(made_moves) in data.keys():
+            if len(possible_moves) == 0:
+                break
+
+            curr_set = str(made_moves)
 
             P = data[curr_set][0]  # prior probabilities
             N = data[curr_set][1]  # visit count
+            # print(N)
             U = [P[i] / (1 + N[i]) for i in range(self.board_size**2)]
             Q = data[curr_set][2]  # action value
 
             # extruding an index of max elem of U+Q vector
             U_Q = np.array(U) + np.array(Q)
             move = torch.from_numpy(U_Q).data.max(0, keepdim=True)[1].item()
+
             while move not in possible_moves:
-                U_Q[move] -= 1
+                U_Q[move] -= 10
                 move = torch.from_numpy(U_Q).data.max(0, keepdim=True)[1].item()
 
             possible_moves.remove(move)
             made_moves[is_white].add(move)
             simulation.append(move)
+            board = self.update_board(board, [move // self.board_size, move % self.board_size])
 
             is_white = not is_white
 
+            if self.check_win_condition(board, [move // self.board_size, move % self.board_size]):
+                winner = is_white * 2 - 1
+                break
 
-        board = self.update_board(board, simulation)
+
         policy, evaluation = self.get_data(board)
         N = [0] * self.board_size**2
-        data[self.convert(made_moves)] = [policy, 0, N, N] # N matches Q at the beginning
+        data[str(made_moves)] = [policy, deepcopy(N), deepcopy(N)] # N matches Q at the beginning
+
+        if winner:
+            evaluation = winner
+
+        is_white = not is_white
 
         # updating Q and N
-        simulation.reverse()
         for move in simulation:
-            made_moves.remove(move)
-            curr_set = self.convert(made_moves)
+            made_moves[is_white].remove(move)
+            curr_set = str(made_moves)
 
             N = data[curr_set][1]
             Q = data[curr_set][2]
@@ -126,3 +133,66 @@ class MCTS:
             data[curr_set][2] = Q
 
         return data
+
+    def check_win_condition(self, field, last_move):
+        black_pos, white_pos, turn, hist_1_black, \
+        hist_1_white, hist_2_black, hist_2_white = field
+
+        N = self.board_size
+        n = 5
+        x, y = last_move
+
+        board = white_pos
+        if turn[0][0] == 1:
+            board = black_pos
+
+        winner = board[x][y]
+
+        # vertical
+        for i in range(n):
+            match_count = 0
+            for j in range(i - n + y + 1, i + y + 1):
+                if j < 0 or j >= N:
+                    continue
+                if winner != board[x][j]:
+                    break
+                match_count += 1
+            if match_count == n:
+                return True
+
+        # horizontal
+        for i in range(n):
+            match_count = 0
+            for j in range(i - n + x + 1, i + x + 1):
+                if j < 0 or j >= N:
+                    continue
+                if winner != board[j][y]:
+                    break
+                match_count += 1
+            if match_count == n:
+                return True
+
+        # diagonals
+        for i in range(n):
+            match_count = 0
+            for j in range(i - n + 1, i + 1):
+                if x + j < 0 or x + j >= N or y + j < 0 or y + j >= N:
+                    continue
+                if winner != board[x + j][y + j]:
+                    break
+                match_count += 1
+            if match_count == n:
+                return True
+
+        for i in range(n):
+            match_count = 0
+            for j in range(i - n + 1, i + 1):
+                if x - j < 0 or x - j >= N or y + j < 0 or y + j >= N:
+                    continue
+                if winner != board[x - j][y + j]:
+                    break
+                match_count += 1
+            if match_count == n:
+                return True
+
+        return False

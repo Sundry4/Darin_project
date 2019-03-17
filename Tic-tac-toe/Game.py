@@ -16,20 +16,20 @@ class Game:
     boarder_width = 2
     cell_width = 50
 
-    def __init__(self, N):
-        self.black_pos = np.array([[0] * N for _ in range(N)])
-        self.white_pos = np.array([[0] * N for _ in range(N)])
-        self.turn = np.array([[1] * N for _ in range(N)])  # 1 for black, -1 for white
-        self.hist_1_black = np.array([[0] * N for _ in range(N)])
-        self.hist_1_white = np.array([[0] * N for _ in range(N)])
-        self.hist_2_black = np.array([[0] * N for _ in range(N)])
-        self.hist_2_white = np.array([[0] * N for _ in range(N)])
+    def __init__(self, board_size):
+        self.black_pos = np.array([[0] * board_size for _ in range(board_size)])
+        self.white_pos = np.array([[0] * board_size for _ in range(board_size)])
+        self.turn = np.array([[1] * board_size for _ in range(board_size)])  # 1 for black, -1 for white
+        self.hist_1_black = np.array([[0] * board_size for _ in range(board_size)])
+        self.hist_1_white = np.array([[0] * board_size for _ in range(board_size)])
+        self.hist_2_black = np.array([[0] * board_size for _ in range(board_size)])
+        self.hist_2_white = np.array([[0] * board_size for _ in range(board_size)])
 
         self.turns_amount = 0
 
-        self.N = N
-        self.win_width = self.cell_width * (self.N + 2)
-        self.win_height = self.cell_width * (self.N + 2)
+        self.board_size = board_size
+        self.win_width = self.cell_width * (self.board_size + 2)
+        self.win_height = self.cell_width * (self.board_size + 2)
         self.display = (self.win_width, self.win_height)
 
         # creating board
@@ -63,10 +63,7 @@ class Game:
         self.screen.blit(self.surface, (0, 0))
         pygame.display.update()
 
-        self.possible_moves = []
-        for i in range(self.N):
-            for j in range(self.N):
-                self.possible_moves.append([i, j])
+        self.possible_moves = {*range(self.board_size ** 2)}
 
         self.player_one = None
         self.player_two = None
@@ -102,7 +99,7 @@ class Game:
             board = self.black_pos
 
         n = 3
-        if self.N >= 5:
+        if self.board_size >= 5:
             n = 5
 
         x, y = last_move
@@ -112,7 +109,7 @@ class Game:
         for i in range(n):
             match_count = 0
             for j in range(i - n + y + 1, i + y + 1):
-                if j < 0 or j >= self.N:
+                if j < 0 or j >= self.board_size:
                     continue
                 if winner != board[x][j]:
                     break
@@ -124,7 +121,7 @@ class Game:
         for i in range(n):
             match_count = 0
             for j in range(i - n + x + 1, i + x + 1):
-                if j < 0 or j >= self.N:
+                if j < 0 or j >= self.board_size:
                     continue
                 if winner != board[j][y]:
                     break
@@ -136,7 +133,7 @@ class Game:
         for i in range(n):
             match_count = 0
             for j in range(i - n + 1, i + 1):
-                if x + j < 0 or x + j >= self.N or y + j < 0 or y + j >= self.N:
+                if x + j < 0 or x + j >= self.board_size or y + j < 0 or y + j >= self.board_size:
                     continue
                 if winner != board[x + j][y + j]:
                     break
@@ -147,7 +144,7 @@ class Game:
         for i in range(n):
             match_count = 0
             for j in range(i - n + 1, i + 1):
-                if x - j < 0 or x - j >= self.N or y + j < 0 or y + j >= self.N:
+                if x - j < 0 or x - j >= self.board_size or y + j < 0 or y + j >= self.board_size:
                     continue
                 if winner != board[x - j][y + j]:
                     break
@@ -193,10 +190,7 @@ class Game:
         self.hist_2_black = np.array([[0] * self.N for _ in range(self.N)])
         self.hist_2_white = np.array([[0] * self.N for _ in range(self.N)])
 
-        self.possible_moves = []
-        for i in range(self.N):
-            for j in range(self.N):
-                self.possible_moves.append([i, j])
+        self.possible_moves = {*range(self.board_size ** 2)}
 
         self.start_game(self.player_one, self.player_two)
 
@@ -247,7 +241,7 @@ class Game:
 
             self.screen.blit(self.surface, (0, 0))
             pygame.display.update()
-            self.possible_moves.pop(self.possible_moves.index(cell))
+            self.possible_moves.remove(cell[0] * self.board_size + cell[1])
 
     def end(self, winner=None):
         font = pygame.font.Font(None, 50)
