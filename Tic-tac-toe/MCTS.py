@@ -30,7 +30,7 @@ class MCTS:
         output, v = model(board)
         return F.softmax(output, dim=1).detach().numpy()[0], v.item()
 
-    def get_policy(self, board, iterations, possible_moves):
+    def get_policy(self, board, iterations, possible_moves): # possible move is set of numbers from 0 to 224
         policy, v = self.get_data(board)
         N = [0] * self.board_size**2
         data = {'': [policy, N, Q]}
@@ -50,6 +50,7 @@ class MCTS:
             is_black = True
 
         for move in simulation:
+            cell = [move // 15, move % 15]
             hist_2_black = deepcopy(hist_1_black)
             hist_2_white = deepcopy(hist_1_white)
 
@@ -57,10 +58,11 @@ class MCTS:
             hist_1_white = deepcopy(white_pos)
 
             if is_black:
-                black_pos[move[0] - 1][move[1] - 1] = 1
+                black_pos[cell[0]][cell[1]] = 1
             else:
-                white_pos[move[0] - 1][move[1] - 1] = 1
+                white_pos[cell[0]][cell[1]] = 1
             turn *= -1
+            is_black = not is_black
 
         board = np.stack((black_pos, white_pos, turn,
                           hist_1_black, hist_1_white,
@@ -72,12 +74,17 @@ class MCTS:
     def convert(self, x):
         string = ''
         for i in x:
-            string += str(i) + ','
+            string += str(i)
         return string
 
     def step(self, data, possible_moves, board):
-        made_moves = set()
+        made_moves = [set(), set()] # 1st is black, 2nd is white
         simulation = []
+
+        is_white = False
+        if board[2][0][0].item() == -1:
+            is_white = True
+
         while made_moves in data.keys():
             curr_set = self.convert(made_moves)
 
@@ -94,8 +101,10 @@ class MCTS:
                 move = torch.from_numpy(U_Q).data.max(0, keepdim=True)[1].item()
 
             possible_moves.remove(move)
-            made_moves.add(move)
+            made_moves[is_white].add(move)
             simulation.append(move)
+
+            is_white = not is_white
 
 
         board = self.update_board(board, simulation)
