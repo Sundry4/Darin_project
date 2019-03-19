@@ -1,6 +1,6 @@
 import time
 import random
-import pygame
+# import pygame
 import torch
 import numpy as np
 from Net import *
@@ -74,41 +74,140 @@ def normal(x):
 class AI_Player:
     board_size = 15
 
-    def __init__(self, is_black):
+    def __init__(self, is_black, path):
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         self.model = Net()
         if is_black:
-            self.model.load_state_dict(torch.load("model7_black_21.pth"))
+            self.model.load_state_dict(torch.load("model7_black_1.pth"))
         else:
-            self.model.load_state_dict(torch.load("model7_white_21.pth"))
-        self.model.eval()
+            self.model.load_state_dict(torch.load("model7_white_1.pth"))
+        self.model.eval().to(device)
 
-        self.mcts = MCTS()
-        self.iterations = 1000
+        self.model_V = VNet()
+        self.model_V.load_state_dict(torch.load(path))
+        self.model_V.eval().to(device)
+
+        self.mcts = MCTS(path)
+        self.iterations = 50
         self.eps = 10**-5
 
-    # returns 2 numbers from 0 to 14
-    def move_(self, possible_moves, board):
-        # time.sleep(1)  # delay for making you believe, that model needs to think
+    def get_policy(self, possible_moves, board):
         data = torch.from_numpy(np.array(board)).type(torch.FloatTensor)
+        # output = F.softmax(self.model_V(data), dim=1)[0]
 
-        # output_p, _ = self.model(data)
-        # policy = F.softmax(output_p, dim=1).detach().numpy()[0]
+        cell = self.four_in_a_row(deepcopy(data))
+        if cell:
+            policy = np.array([0] * 15 ** 2)
+            policy[cell[0] * 15 + cell[1]] = 1.0
+        else:
+            # without tree
+            # output_p, _ = self.model(data)
+            # policy = F.softmax(output_p, dim=1).detach().numpy()[0]
 
-        policy = self.mcts.get_policy(data, self.iterations, deepcopy(possible_moves)).detach().numpy()
+            # with tree
+            policy = self.mcts.get_policy(data, self.iterations, deepcopy(possible_moves))
+            policy = policy.cpu().detach().numpy()
+
+        actions = range(225)
         while True:
-            actions = range(225)
             number = np.random.choice(actions, 1, p=policy)[0]
             if number in possible_moves:
-                return [number // self.board_size, number % self.board_size]
+                return policy
 
             policy[number] = 0
             policy = F.softmax(torch.tensor([policy]), dim=1).detach().numpy()[0]
 
-    def get_policy(self, board, possible_moves):
-        data = torch.from_numpy(np.array(board)).type(torch.FloatTensor)
-        policy = self.mcts.get_policy(data, self.iterations, possible_moves).tolist()
+    # returns 2 numbers from 0 to 14
+    def move_(self, possible_moves, board, policy=[]):
+        if len(policy) == 0:
+            policy = self.get_policy(possible_moves, board)
+        policy = policy.tolist()
 
-        # output_p, _ = self.model(data)
-        # policy = F.softmax(output_p, dim=1).detach().numpy()[0]
-        # print(policy)
-        return policy
+        actions = range(225)
+        while True:
+            # number = np.random.choice(actions, 1, p=policy)[0]
+            # if number in possible_moves:
+            #     return [number // self.board_size, number % self.board_size]
+            #
+            # policy[number] = 0
+            # policy = F.softmax(torch.tensor([policy]), dim=1).detach().numpy()[0]
+
+            number = policy.index(np.max(policy))
+            if number in possible_moves:
+                return [number // self.board_size, number % self.board_size]
+
+            policy[number] -= 1
+
+
+    def four_in_a_row(self, state):
+        is_black = 0
+        if state[2][0][0] == 1:
+            is_black = 1
+
+        board = state[abs(is_black - 1)] # if it's black's turn, we choose black's (number 0) board
+
+        for x in range(15):
+            for y in range(15):
+                if state[is_black][x][y] == board[x][y] == 0:
+                    board[x][y] = 1
+                    if self.find_four(board, x, y):
+                        board[x][y] = 0
+                        return x, y
+                    board[x][y] = 0
+
+        return None
+
+    def find_four(self, board, x, y):
+        N = 15
+        n = 5
+
+        winner = 1
+        # vertical
+        for i in range(n):
+            match_count = 0
+            for j in range(i - n + y + 1, i + y + 1):
+                if j < 0 or j >= N:
+                    continue
+                if winner != board[x][j]:
+                    break
+                match_count += 1
+            if match_count == n:
+                return True
+
+        # horizontal
+        for i in range(n):
+            match_count = 0
+            for j in range(i - n + x + 1, i + x + 1):
+                if j < 0 or j >= N:
+                    continue
+                if winner != board[j][y]:
+                    break
+                match_count += 1
+            if match_count == n:
+                return True
+
+        # diagonals
+        for i in range(n):
+            match_count = 0
+            for j in range(i - n + 1, i + 1):
+                if x + j < 0 or x + j >= N or y + j < 0 or y + j >= N:
+                    continue
+                if winner != board[x + j][y + j]:
+                    break
+                match_count += 1
+            if match_count == n:
+                return True
+
+        for i in range(n):
+            match_count = 0
+            for j in range(i - n + 1, i + 1):
+                if x - j < 0 or x - j >= N or y + j < 0 or y + j >= N:
+                    continue
+                if winner != board[x - j][y + j]:
+                    break
+                match_count += 1
+            if match_count == n:
+                return True
+
+        return False

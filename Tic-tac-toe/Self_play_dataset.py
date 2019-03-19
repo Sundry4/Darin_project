@@ -9,12 +9,13 @@ import torch.utils.data
 
 
 class Self_play_dataset:
-    def __init__(self):
+    def __init__(self, player_one, player_two):
         self.dataset = []
-        self.labels = []
+        self.labels_p = []
+        self.labels_v = []
         self.board_size = 15
-        self.player_one = AI_Player(1)
-        self.player_two = AI_Player(0)
+        self.player_one = player_one
+        self.player_two = player_two
         self.possible_moves = set()
 
         self.black_pos = []
@@ -26,6 +27,12 @@ class Self_play_dataset:
         self.hist_2_white = []
 
         self.simulation = []
+
+    def full_clear(self):
+        self.clear()
+        self.dataset = []
+        self.labels_p = []
+        self.labels_v = []
 
     def clear(self):
         self.possible_moves = {*range(self.board_size**2)}
@@ -124,8 +131,11 @@ class Self_play_dataset:
                 )
             )
             self.simulation.append(deepcopy(state))
-            cell = curr_player.move_(self.possible_moves, state)
+            self.dataset.append(deepcopy(state))
+            policy = curr_player.get_policy(self.possible_moves, state)
+            cell = curr_player.move_(self.possible_moves, state, policy)
             self.possible_moves.remove(cell[0] * self.board_size + cell[1])
+            self.labels_p.append(policy)
 
             if curr_player == self.player_one:
                 self.put_X(cell)
@@ -137,9 +147,9 @@ class Self_play_dataset:
             # win condition check
             cells = self.check_win_condition(cell)
             if cells:
-                winner = 1
+                winner = 0 # black
                 if curr_player == self.player_two:
-                    winner = -1
+                    winner = 1 # white
                 self.end(winner)
                 return
 
@@ -150,49 +160,37 @@ class Self_play_dataset:
                 self.end(0)
                 return
 
-
     def end(self, winner):
-        print(len(self.simulation))
-        curr_player = self.player_one
-        for board in self.simulation:
-            self.dataset.append(board)
-            self.labels.append([curr_player.get_policy(board, self.possible_moves),
-                                [winner] * self.board_size**2])
-
-        print("Winner, winner chicken dinner")
+        print(len(self.simulation), winner)
+        for k in range(len(self.simulation)):
+            self.labels_v.append(winner)
 
     def create_dataset(self):
         x = [np.array(self.dataset[i]) for i in range(len(self.dataset))]
         data_x = torch.stack([torch.from_numpy(i).cuda().type(torch.FloatTensor) for i in x])
         del x
 
-        y = [self.labels[i] for i in range(len(self.labels))]
-        data_y = torch.stack([torch.tensor(i) for i in y])
-        del y
+        y1 = [self.labels_p[i] for i in range(len(self.labels_p))]
+        data_y1 = torch.stack([torch.tensor(i).cuda().type(torch.FloatTensor) for i in y1])
+        del y1
 
-        dataset = utils.data.TensorDataset(data_x, data_y)
+        y2 = [self.labels_v[i] for i in range(len(self.labels_v))]
+        data_y2 = torch.stack([torch.tensor(i) for i in y2])
+        del y2
+
+        dataset = utils.data.TensorDataset(data_x, data_y1, data_y2)
         del data_x
-        del data_y
+        del data_y1
+        del data_y2
 
         return dataset
 
     def form_dataset(self):
-        batch_size = 64
+        batch_size = 16
 
         dataset = self.create_dataset()
 
-        train, test = torch.utils.data.random_split(dataset, (len(dataset) - 10, 10))
+        train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
         del dataset
 
-        train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True)
-        test_loader = torch.utils.data.DataLoader(test, batch_size=batch_size, shuffle=True)
-        del train
-        del test
-
-        return train_loader, test_loader
-
-
-game = Self_play_dataset()
-for _ in range(5):
-    game.play()
-
+        return train_loader

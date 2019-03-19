@@ -10,16 +10,24 @@ from Net import *
 
 
 class MCTS:
-    def __init__(self):
+    def __init__(self, path):
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         self.model_black = Net()
-        self.model_black.load_state_dict(torch.load("model7_black_21.pth"))
-        self.model_black.eval()
+        self.model_black.load_state_dict(torch.load("model7_black_1.pth"))
+        self.model_black.eval().to(self.device)
 
         self.model_white = Net()
-        self.model_white.load_state_dict(torch.load("model7_white_21.pth"))
-        self.model_white.eval()
+        self.model_white.load_state_dict(torch.load("model7_white_1.pth"))
+        self.model_white.eval().to(self.device)
+
+        self.model_V = VNet()
+        self.model_V.load_state_dict(torch.load(path))
+        self.model_V.eval().to(self.device)
 
         self.board_size = 15
+        self.alpha = 1
+
     def get_data(self, board):
         model = self.model_black
 
@@ -28,21 +36,30 @@ class MCTS:
         if board[2][0][0].item() == -1:
             model = self.model_white
 
-        data = torch.from_numpy(np.array(board)).type(torch.FloatTensor)
-        output, v = model(data)
-        return F.softmax(output, dim=1).detach().numpy()[0], v.item()
+        data = torch.tensor(board)
+        data = data.to(self.device)
+        data = data.type(torch.cuda.FloatTensor)
+        output, _ = model(data.to(self.device))
+
+        output_v = F.softmax(self.model_V(data), dim=1)[0]
+        evaluation = (output_v[0] - output_v[1]).item()
+
+        return F.softmax(output, dim=1).cpu().detach().numpy()[0], evaluation
 
     def get_policy(self, board, iterations, possible_moves): # possible move is set of numbers from 0 to 224
-        policy, v = self.get_data(board)
+        temp = 5
+
+        policy, v = self.get_data(board.to(self.device))
         N = [0] * self.board_size**2
-        data = {str([set(), set()]): [policy, deepcopy(N), deepcopy(N)]}  # N matches Q at the beginning
+        data = {self.conv([set(), set()]): [policy, deepcopy(N), deepcopy(N)]}  # N matches Q at the beginning
 
         # making simulations, every single one starts from root state
         for _ in range(iterations): # it may be better to change it to time
-            data = self.step(data, possible_moves, board)
+            data = self.step(data, possible_moves, deepcopy(board))
 
-        N = torch.FloatTensor(data[str([set(), set()])][1])
-        return F.softmax(N, dim=0) # returning distribution adjusted by N
+        N = torch.FloatTensor(data[self.conv([set(), set()])][1])
+        # print(np.array(F.softmax(N, dim=0)).reshape((15, 15)))
+        return F.softmax(N**(1/temp), dim=0) # returning distribution adjusted by N
 
     def update_board(self, board, cell):
         black_pos, white_pos, turn, hist_1_black,\
@@ -70,6 +87,10 @@ class MCTS:
                          )
         return board
 
+    # self.converting set to dict key
+    def conv(self, moves):
+        return str(sorted(moves[0])) + str(sorted(moves[1]))
+
     def step(self, data, possible_moves, board):
         made_moves = [set(), set()] # 1st is black, 2nd is white
         simulation = []
@@ -79,16 +100,15 @@ class MCTS:
             is_white = True
 
         winner = 0
-        while str(made_moves) in data.keys():
+        while self.conv(made_moves) in data.keys():
             if len(possible_moves) == 0:
                 break
 
-            curr_set = str(made_moves)
+            curr_set = self.conv(made_moves)
 
             P = data[curr_set][0]  # prior probabilities
             N = data[curr_set][1]  # visit count
-            # print(N)
-            U = [P[i] / (1 + N[i]) for i in range(self.board_size**2)]
+            U = [P[i] / (self.alpha * (1 + N[i])) for i in range(self.board_size**2)]
             Q = data[curr_set][2]  # action value
 
             # extruding an index of max elem of U+Q vector
@@ -112,8 +132,9 @@ class MCTS:
 
 
         policy, evaluation = self.get_data(board)
+
         N = [0] * self.board_size**2
-        data[str(made_moves)] = [policy, deepcopy(N), deepcopy(N)] # N matches Q at the beginning
+        data[self.conv(made_moves)] = [policy, deepcopy(N), deepcopy(N)] # N matches Q at the beginning
 
         if winner:
             evaluation = winner
@@ -121,9 +142,12 @@ class MCTS:
         is_white = not is_white
 
         # updating Q and N
+        simulation.reverse()
         for move in simulation:
+            possible_moves.add(move)
             made_moves[is_white].remove(move)
-            curr_set = str(made_moves)
+
+            curr_set = self.conv(made_moves)
 
             N = data[curr_set][1]
             Q = data[curr_set][2]
@@ -131,6 +155,8 @@ class MCTS:
             Q[move] = (Q[move] * (N[move] - 1) + evaluation) / N[move]
             data[curr_set][1] = N
             data[curr_set][2] = Q
+
+            is_white = not is_white
 
         return data
 
@@ -142,8 +168,9 @@ class MCTS:
         n = 5
         x, y = last_move
 
+        # searching for player made last turn
         board = white_pos
-        if turn[0][0] == 1:
+        if turn[0][0] == -1:
             board = black_pos
 
         winner = board[x][y]
