@@ -8,6 +8,9 @@ Here is an example of game
 ---
 
 In this project I use similar algorithm of learning to AlphaGo Zero.
+
 It is divided by 2 parts.
+
 Firstly, I train a model on dataset of moves made by experts using supervised learning
-Then I use reinforcement learning to achieve better results
+
+Then I use MCTS as reinforcement learning to achieve better results
