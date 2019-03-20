@@ -122,7 +122,7 @@ def form_dataset(start, end):
     batch_size = 1024
 
     dataset = create_dataset(start, end)
-    train, test = torch.utils.data.random_split(dataset, (len(dataset) - 1000, 1000))
+    train, test = torch.utils.data.random_split(dataset, (len(dataset) - 100, 100))
     del dataset
 
     train_loader = torch.utils.data.DataLoader(train, batch_size=batch_size, shuffle=True, pin_memory=True,

@@ -75,14 +75,14 @@ if __name__ == "__main__":
     run()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    size = 100000
-    for number in range(1, 21):
+    size = 10
+    for number in range(1, 2):
         print("CURR BATCH:", number, '\n')
 
         path = 'model11_V_{}.pth'
         model = VNet()
-        model.load_state_dict(torch.load(path.format(number)))
-        model.eval()
+        # model.load_state_dict(torch.load(path.format(number)))
+        # model.eval()
 
         if torch.cuda.device_count() > 1:
             model = torch.nn.DataParallel(model)

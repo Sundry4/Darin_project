@@ -74,36 +74,35 @@ if __name__ == "__main__":
     run()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    size = 50000
-    for number in range(1, 21):
+    size = 100
+    for number in range(1, 2):
         print("CURR BATCH:", number, '\n')
 
         # ------------  white  ------------
 
         path = 'model7_white_{}.pth'
         model = PNet()
-        model.load_state_dict(torch.load(path.format(number)))
-        model.eval()
+        # model.load_state_dict(torch.load(path.format(number)))
+        # model.eval()
 
         if torch.cuda.device_count() > 1:
             model = torch.nn.DataParallel(model)
 
         optimizer = optim.Adam(model.parameters(), lr=0.003)
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
-        criterion_p = nn.CrossEntropyLoss().to(device)
-        criterion_v = nn.MSELoss().to(device)
+        criterion = nn.CrossEntropyLoss().to(device)
 
         model = model.to(device)
 
         data_train, data_test = form_dataset(0, (number - 1) * size, number * size)
-        for i in range(40):
+        for i in range(10):
             print("EPOCH:", i + 1)
             train(data_train)
 
         test_model(data_test)
         test_model(data_train)
 
-        torch.save(gpu_to_common(model), path.format(number + 1))
+        torch.save(gpu_to_common(model), path.format(number))
 
         del data_train
         del data_test
@@ -115,26 +114,25 @@ if __name__ == "__main__":
 
         path = 'model7_black_{}.pth'
         model = PNet()
-        model.load_state_dict(torch.load(path.format(number)))
-        model.eval()
+        # model.load_state_dict(torch.load(path.format(number)))
+        # model.eval()
 
         if torch.cuda.device_count() > 1:
             model = torch.nn.DataParallel(model)
 
         optimizer = optim.Adam(model.parameters(), lr=0.003)
         exp_lr_scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
-        criterion = nn.CrossEntropyLoss()
+        criterion = nn.CrossEntropyLoss().to(device)
 
         model = model.to(device)
-        criterion = criterion.to(device)
 
         data_train, data_test = form_dataset(1, (number - 1) * size, number * size)
-        for i in range(40):
+        for i in range(10):
             print("EPOCH:", i + 1)
             train(data_train)
         test_model(data_test)
         test_model(data_train)
 
-        torch.save(gpu_to_common(model), path.format(number + 1))
+        torch.save(gpu_to_common(model), path.format(number))
 
         print("Black:", time.clock() - start)

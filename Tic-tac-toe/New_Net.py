@@ -41,20 +41,18 @@ class PNet(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-        def policy(self, x):
-            x = self.policy1(x)
-            x = x.view(x.size(0), -1)
-            x = self.policy2(x)
-
-            return x
-
         self.weight_init(self.convolutional)
         self.weight_init(self.residual1)
         self.weight_init(self.residual2)
         self.weight_init(self.policy1)
         self.weight_init(self.policy2)
-        self.weight_init(self.value1)
-        self.weight_init(self.value2)
+
+    def policy(self, x):
+        x = self.policy1(x)
+        x = x.view(x.size(0), -1)
+        x = self.policy2(x)
+
+        return x
 
     @staticmethod
     def weight_init(elem):
@@ -120,20 +118,18 @@ class VNet(nn.Module):
             nn.Tanh()
         )
 
-        def val(self, x):
-            x = self.value1(x)
-            x = x.view(x.size(0), -1)
-            x = self.value2(x)
-
-            return x
-
         self.weight_init(self.convolutional)
         self.weight_init(self.residual1)
         self.weight_init(self.residual2)
-        self.weight_init(self.policy1)
-        self.weight_init(self.policy2)
         self.weight_init(self.value1)
         self.weight_init(self.value2)
+
+    def val(self, x):
+        x = self.value1(x)
+        x = x.view(x.size(0), -1)
+        x = self.value2(x)
+
+        return x
 
     @staticmethod
     def weight_init(elem):
