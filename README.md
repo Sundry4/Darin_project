@@ -1,5 +1,5 @@
 # Darin
 
-Machine learning project containing combination of supervised and reinforsment learning
+Machine learning project containing combination of supervised and reinforcement learning
 
-![](https://github.com/birshert/Darin/blob/master/NET/sample1.png)
+![](https://github.com/ashaba1in/Darin/blob/game_sample.png)
