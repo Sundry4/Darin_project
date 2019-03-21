@@ -2,6 +2,7 @@ import pygame
 from pygame import *
 from Players import *
 from copy import deepcopy
+import time
 
 
 class Game:
@@ -17,13 +18,18 @@ class Game:
     cell_width = 50
 
     def __init__(self, board_size):
-        self.black_pos = np.array([[0] * board_size for _ in range(board_size)])
-        self.white_pos = np.array([[0] * board_size for _ in range(board_size)])
+        self.empty = np.array([[0] * board_size for _ in range(board_size)])
+        self.black_pos = deepcopy(self.empty)
+        self.white_pos = deepcopy(self.empty)
         self.turn = np.array([[1] * board_size for _ in range(board_size)])  # 1 for black, -1 for white
-        self.hist_1_black = np.array([[0] * board_size for _ in range(board_size)])
-        self.hist_1_white = np.array([[0] * board_size for _ in range(board_size)])
-        self.hist_2_black = np.array([[0] * board_size for _ in range(board_size)])
-        self.hist_2_white = np.array([[0] * board_size for _ in range(board_size)])
+        self.hist_1_black = deepcopy(self.empty)
+        self.hist_1_white = deepcopy(self.empty)
+        self.hist_2_black = deepcopy(self.empty)
+        self.hist_2_white = deepcopy(self.empty)
+        self.hist_3_black = deepcopy(self.empty)
+        self.hist_3_white = deepcopy(self.empty)
+        self.hist_4_black = deepcopy(self.empty)
+        self.hist_4_white = deepcopy(self.empty)
 
         self.turns_amount = 0
 
@@ -75,6 +81,8 @@ class Game:
         return pos
 
     def put_X(self, cell):
+        self.hist_4_black = deepcopy(self.hist_3_black)
+        self.hist_3_black = deepcopy(self.hist_2_black)
         self.hist_2_black = deepcopy(self.hist_1_black)
         self.hist_1_black = deepcopy(self.black_pos)
         self.black_pos[cell[0]][cell[1]] = 1
@@ -86,6 +94,8 @@ class Game:
                   [pos[0] + 15, pos[1] - 15], 6)
 
     def put_O(self, cell):
+        self.hist_4_white = deepcopy(self.hist_3_white)
+        self.hist_3_white = deepcopy(self.hist_2_white)
         self.hist_2_white = deepcopy(self.hist_1_white)
         self.hist_1_white = deepcopy(self.white_pos)
         self.white_pos[cell[0]][cell[1]] = 1
@@ -182,13 +192,18 @@ class Game:
 
         self.turns_amount = 0
 
-        self.black_pos = np.array([[0] * self.N for _ in range(self.N)])
-        self.white_pos = np.array([[0] * self.N for _ in range(self.N)])
-        self.turn = np.array([[1] * self.N for _ in range(self.N)])  # 1 for black, -1 for white
-        self.hist_1_black = np.array([[0] * self.N for _ in range(self.N)])
-        self.hist_1_white = np.array([[0] * self.N for _ in range(self.N)])
-        self.hist_2_black = np.array([[0] * self.N for _ in range(self.N)])
-        self.hist_2_white = np.array([[0] * self.N for _ in range(self.N)])
+        self.empty = np.array([[0] * self.board_size for _ in range(self.board_size)])
+        self.black_pos = deepcopy(self.empty)
+        self.white_pos = deepcopy(self.empty)
+        self.turn = np.array([[1] * self.board_size for _ in range(self.board_size)])  # 1 for black, -1 for white
+        self.hist_1_black = deepcopy(self.empty)
+        self.hist_1_white = deepcopy(self.empty)
+        self.hist_2_black = deepcopy(self.empty)
+        self.hist_2_white = deepcopy(self.empty)
+        self.hist_3_black = deepcopy(self.empty)
+        self.hist_3_white = deepcopy(self.empty)
+        self.hist_4_black = deepcopy(self.empty)
+        self.hist_4_white = deepcopy(self.empty)
 
         self.possible_moves = {*range(self.board_size ** 2)}
 
@@ -198,15 +213,18 @@ class Game:
         self.player_one = player_one
         self.player_two = player_two
 
+        start = time.clock()
+
         curr_player = player_one
         while True:
             state = torch.from_numpy(
-                        np.stack(
-                            (self.black_pos, self.white_pos, self.turn,
-                             self.hist_1_black, self.hist_1_white,
-                             self.hist_2_black, self.hist_2_white),
-                            axis=0
-                        )
+                np.stack(
+                    (self.black_pos, self.white_pos, self.turn,
+                     self.hist_1_black, self.hist_1_white,
+                     self.hist_2_black, self.hist_2_white,
+                     self.hist_3_black, self.hist_3_white,
+                     self.hist_4_black, self.hist_4_white)
+                )
             )
             cell = curr_player.move_(self.possible_moves, state)
 
@@ -231,6 +249,7 @@ class Game:
                 winner = 'O'
                 if curr_player == player_two:
                     winner = 'X'
+                print(time.clock() - start, "\n")
                 self.end(winner)
 
             self.turn *= -1

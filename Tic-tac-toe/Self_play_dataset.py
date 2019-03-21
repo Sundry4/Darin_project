@@ -9,7 +9,7 @@ import torch.utils.data
 
 
 class Self_play_dataset:
-    def __init__(self, player_one, player_two):
+    def __init__(self, mcts):
         self.dataset = []
         self.labels_p = []
         self.labels_v = []
@@ -27,6 +27,9 @@ class Self_play_dataset:
         self.hist_2_white = []
 
         self.simulation = []
+
+        self.mcts = mcts
+        self.is_black = True
 
     def full_clear(self):
         self.clear()
@@ -121,7 +124,6 @@ class Self_play_dataset:
     def play(self):
         self.clear()
 
-        curr_player = self.player_one
         while True:
             state = torch.from_numpy(
                 np.stack(
@@ -132,28 +134,37 @@ class Self_play_dataset:
             )
             self.simulation.append(deepcopy(state))
             self.dataset.append(deepcopy(state))
-            policy = curr_player.get_policy(self.possible_moves, state)
-            cell = curr_player.move_(self.possible_moves, state, policy)
-            self.possible_moves.remove(cell[0] * self.board_size + cell[1])
+
+            # getting policy
+            data = torch.from_numpy(np.array(board)).type(torch.FloatTensor)
+            policy = self.mcts.get_policy(data, deepcopy(self.possible_moves))
+            policy = policy.cpu().detach().numpy()
             self.labels_p.append(policy)
 
-            if curr_player == self.player_one:
-                self.put_X(cell)
-                curr_player = self.player_two
+            # getting move
+            move = np.array(policy).argmax()
+            while move not in self.possible_moves:
+                policy[move] -= 10
+                move = np.array(policy).argmax()
+
+            self.possible_moves.remove(move)
+
+            if self.is_black:
+                self.put_X([move // 15, move % 15])
             else:
-                self.put_O(cell)
-                curr_player = self.player_one
+                self.put_O([move // 15, move % 15])
 
             # win condition check
-            cells = self.check_win_condition(cell)
+            cells = self.check_win_condition(move)
             if cells:
-                winner = 0 # black
-                if curr_player == self.player_two:
-                    winner = 1 # white
+                winner = 1 # white
+                if is_black:
+                    winner = 0 # black
                 self.end(winner)
                 return
 
             self.turn *= -1
+            self.is_black = not self.is_black
 
             # full board condition check
             if len(self.possible_moves) == 0:
@@ -186,9 +197,15 @@ class Self_play_dataset:
         return dataset
 
     def form_dataset(self):
-        batch_size = 16
+        batch_size = 24
 
         dataset = self.create_dataset()
+
+        if len(dataset) % batch_size == 1:
+            batch_size = 16
+
+        if len(dataset) % batch_size == 1:
+            batch_size = 28
 
         train_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True)
         del dataset

@@ -6,27 +6,26 @@ import torch
 from torch import utils
 import torch.nn as nn
 import torch.nn.functional as F
-from Net import *
+from New_Net import *
 
 
 class MCTS:
-    def __init__(self, path):
+    def __init__(self, number_p, number_v):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.model_black = Net()
-        self.model_black.load_state_dict(torch.load("model7_black_1.pth"))
+        self.model_black = PNet()
+        self.model_black.load_state_dict(torch.load("model11_black_{}.pth".format(number_p)))
         self.model_black.eval().to(self.device)
 
-        self.model_white = Net()
-        self.model_white.load_state_dict(torch.load("model7_white_1.pth"))
+        self.model_white = PNet()
+        self.model_white.load_state_dict(torch.load("model11_white_{}.pth".format(number_p)))
         self.model_white.eval().to(self.device)
 
         self.model_V = VNet()
-        self.model_V.load_state_dict(torch.load(path))
+        self.model_V.load_state_dict(torch.load('model11_V_{}.pth'.format(number_v)))
         self.model_V.eval().to(self.device)
 
         self.board_size = 15
-        self.alpha = 1
 
     def get_data(self, board):
         model = self.model_black
@@ -39,31 +38,39 @@ class MCTS:
         data = torch.tensor(board)
         data = data.to(self.device)
         data = data.type(torch.cuda.FloatTensor)
-        output, _ = model(data.to(self.device))
+        output = model(data.to(self.device))
 
         output_v = F.softmax(self.model_V(data), dim=1)[0]
         evaluation = (output_v[0] - output_v[1]).item()
 
         return F.softmax(output, dim=1).cpu().detach().numpy()[0], evaluation
 
-    def get_policy(self, board, iterations, possible_moves): # possible move is set of numbers from 0 to 224
-        temp = 5
+    def get_policy(self, board, possible_moves): # possible move is set of numbers from 0 to 224
+        start = time.clock()
+        tm = 3
+
+        temp = 1
+        count = self.board_size**2 - len(possible_moves)
+        if count > 30:
+            temp = 0.5
+        if count > 50:
+            temp = 0.1
 
         policy, v = self.get_data(board.to(self.device))
         N = [0] * self.board_size**2
         data = {self.conv([set(), set()]): [policy, deepcopy(N), deepcopy(N)]}  # N matches Q at the beginning
 
         # making simulations, every single one starts from root state
-        for _ in range(iterations): # it may be better to change it to time
+        while time.clock() - start < tm: # it may be better to change it to time
             data = self.step(data, possible_moves, deepcopy(board))
 
         N = torch.FloatTensor(data[self.conv([set(), set()])][1])
-        # print(np.array(F.softmax(N, dim=0)).reshape((15, 15)))
         return F.softmax(N**(1/temp), dim=0) # returning distribution adjusted by N
 
     def update_board(self, board, cell):
-        black_pos, white_pos, turn, hist_1_black,\
-        hist_1_white, hist_2_black, hist_2_white = board
+        black_pos, white_pos, turn,\
+        hist_1_black, hist_1_white, hist_2_black, hist_2_white,\
+        hist_3_black, hist_3_white, hist_4_black, hist_4_white = board
 
         is_black = False
         if turn[0][0] == 1:
@@ -83,7 +90,9 @@ class MCTS:
 
         board = np.stack((black_pos, white_pos, turn,
                           hist_1_black, hist_1_white,
-                          hist_2_black, hist_2_white)
+                          hist_2_black, hist_2_white,
+                          hist_3_black, hist_3_white,
+                          hist_4_black, hist_4_white)
                          )
         return board
 
@@ -108,16 +117,17 @@ class MCTS:
 
             P = data[curr_set][0]  # prior probabilities
             N = data[curr_set][1]  # visit count
-            U = [P[i] / (self.alpha * (1 + N[i])) for i in range(self.board_size**2)]
+            c = np.sqrt(np.sum(N))
+            U = [P[i] * c / (1 + N[i]) for i in range(self.board_size**2)]
             Q = data[curr_set][2]  # action value
 
             # extruding an index of max elem of U+Q vector
             U_Q = np.array(U) + np.array(Q)
-            move = torch.from_numpy(U_Q).data.max(0, keepdim=True)[1].item()
+            move = np.array(U_Q).argmax()
 
             while move not in possible_moves:
                 U_Q[move] -= 10
-                move = torch.from_numpy(U_Q).data.max(0, keepdim=True)[1].item()
+                move = np.array(U_Q).argmax()
 
             possible_moves.remove(move)
             made_moves[is_white].add(move)
@@ -161,8 +171,9 @@ class MCTS:
         return data
 
     def check_win_condition(self, field, last_move):
-        black_pos, white_pos, turn, hist_1_black, \
-        hist_1_white, hist_2_black, hist_2_white = field
+        black_pos, white_pos, turn,\
+        hist_1_black, hist_1_white, hist_2_black, hist_2_white,\
+        hist_3_black, hist_3_white, hist_4_black, hist_4_white = field
 
         N = self.board_size
         n = 5

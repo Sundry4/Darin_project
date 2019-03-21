@@ -1,16 +1,17 @@
 import time
 import random
-# import pygame
+import pygame
 import torch
 import numpy as np
-from Net import *
+from Net import Net
+from New_Net import *
 import torch.nn as nn
 import torch.nn.functional as F
 from MCTS import *
 from copy import deepcopy
 
 
-class HumanPlayer:
+class Human_Player:
     cell_width = 50
 
     def __init__(self, board_size=15):
@@ -49,22 +50,13 @@ class HumanPlayer:
                             return cell
 
 
-class RandomPlayer:
+class Random_Player:
     def __init__(self):
         pass
 
     def move_(self, possible_moves, board):
         time.sleep(0.1)
         return random.choice(possible_moves)
-
-
-class ProVis:
-    def __init__(self):
-        pass
-
-    def move_(self, possible_moves, cell, board):
-        time.sleep(1)
-        return [cell[0], cell[1]]
 
 
 def normal(x):
@@ -74,71 +66,34 @@ def normal(x):
 class AI_Player:
     board_size = 15
 
-    def __init__(self, is_black, path):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    def __init__(self, is_black):
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.model = Net()
+        self.model = PNet()
         if is_black:
-            self.model.load_state_dict(torch.load("model7_black_1.pth"))
+            self.model.load_state_dict(torch.load('model11_black_29.pth'))
         else:
-            self.model.load_state_dict(torch.load("model7_white_1.pth"))
-        self.model.eval().to(device)
+            self.model.load_state_dict(torch.load("model11_white_29.pth"))
+        self.model.eval().to(self.device)
 
-        self.model_V = VNet()
-        self.model_V.load_state_dict(torch.load(path))
-        self.model_V.eval().to(device)
+        self.mcts = MCTS(29, 4)
+    # returns 2 numbers from 0 to 14
+    def move_(self, possible_moves, board):
 
-        self.mcts = MCTS(path)
-        self.iterations = 50
-        self.eps = 10**-5
-
-    def get_policy(self, possible_moves, board):
         data = torch.from_numpy(np.array(board)).type(torch.FloatTensor)
-        # output = F.softmax(self.model_V(data), dim=1)[0]
+        policy = self.mcts.get_policy(data, deepcopy(possible_moves))
+        policy = policy.cpu().detach().numpy().tolist()
 
         cell = self.four_in_a_row(deepcopy(data))
         if cell:
             policy = np.array([0] * 15 ** 2)
             policy[cell[0] * 15 + cell[1]] = 1.0
-        else:
-            # without tree
-            # output_p, _ = self.model(data)
-            # policy = F.softmax(output_p, dim=1).detach().numpy()[0]
 
-            # with tree
-            policy = self.mcts.get_policy(data, self.iterations, deepcopy(possible_moves))
-            policy = policy.cpu().detach().numpy()
-
-        actions = range(225)
         while True:
-            number = np.random.choice(actions, 1, p=policy)[0]
-            if number in possible_moves:
-                return policy
-
-            policy[number] = 0
-            policy = F.softmax(torch.tensor([policy]), dim=1).detach().numpy()[0]
-
-    # returns 2 numbers from 0 to 14
-    def move_(self, possible_moves, board, policy=[]):
-        if len(policy) == 0:
-            policy = self.get_policy(possible_moves, board)
-        policy = policy.tolist()
-
-        actions = range(225)
-        while True:
-            # number = np.random.choice(actions, 1, p=policy)[0]
-            # if number in possible_moves:
-            #     return [number // self.board_size, number % self.board_size]
-            #
-            # policy[number] = 0
-            # policy = F.softmax(torch.tensor([policy]), dim=1).detach().numpy()[0]
-
             number = policy.index(np.max(policy))
             if number in possible_moves:
                 return [number // self.board_size, number % self.board_size]
-
             policy[number] -= 1
-
 
     def four_in_a_row(self, state):
         is_black = 0
