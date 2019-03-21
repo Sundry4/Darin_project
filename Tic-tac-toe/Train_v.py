@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import torch
 import time
 
@@ -58,14 +57,13 @@ def test_model(data_loader):
         correct = 0
 
         for data, target in data_loader:
-            x = data.to(device)
-            y = target.to(device)
+            data = data.to(device)
+            target = target.to(device)
 
-            output = model(x)
+            output = model(data)
 
-            for i in range(y.size(0)):
-                if y[i] * output[i] > 0:
-                    correct += 1
+            pred = output.data.max(1, keepdim=True)[1]
+            correct += pred.eq(target.to(device).data.view_as(pred)).cuda().sum()
 
     print('Accuracy: {}/{} ({:.3f}%)\n'.format(correct, len(data_loader.dataset),
                                                100. * correct / len(data_loader.dataset)))
@@ -75,26 +73,26 @@ if __name__ == "__main__":
     run()
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-    size = 10
-    for number in range(1, 2):
+    size = 10000
+    for number in range(1, 20):
         print("CURR BATCH:", number, '\n')
 
         path = 'model11_V_{}.pth'
         model = VNet()
-        # model.load_state_dict(torch.load(path.format(number)))
-        # model.eval()
+        model.load_state_dict(torch.load(path.format(number)))
+        model.eval()
 
         if torch.cuda.device_count() > 1:
             model = torch.nn.DataParallel(model)
 
         optimizer = optim.Adam(model.parameters(), lr=0.003)
         scheduler = lr_scheduler.StepLR(optimizer, step_size=2, gamma=0.7)
-        criterion = nn.MSELoss().to(device)
+        criterion = nn.CrossEntropyLoss().to(device)
 
         model = model.to(device)
 
         data_train, data_test = form_dataset((number - 1) * size, number * size)
-        for i in range(40):
+        for i in range(20):
             print("EPOCH:", i + 1)
             train(data_train)
 

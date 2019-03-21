@@ -9,13 +9,15 @@ class PNet(nn.Module):
         self.convolutional = nn.Sequential(
             nn.Conv2d(11, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5)
         )
 
         self.residual1 = nn.Sequential(
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
+            # nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True)
@@ -25,6 +27,7 @@ class PNet(nn.Module):
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
+            # nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True)
@@ -33,12 +36,13 @@ class PNet(nn.Module):
         self.policy1 = nn.Sequential(
             nn.Conv2d(256, 2, kernel_size=1, stride=1),
             nn.BatchNorm2d(2),
-            nn.ReLU(inplace=True)
+            nn.ReLU(inplace=True),
+            nn.Dropout(p=0.5)
         )
 
         self.policy2 = nn.Sequential(
-            nn.Linear(450, 15 * 15),
-            nn.ReLU(inplace=True)
+            nn.Linear(15 * 15 * 2, 15 * 15),
+            nn.LeakyReLU(inplace=True)
         )
 
         self.weight_init(self.convolutional)
@@ -67,8 +71,8 @@ class PNet(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, x):
+        x = x.view(-1, 11, 15, 15)
         x = self.convolutional(x)
-
         out = self.residual1(x)
         x = x + out
         out = self.residual2(x)
@@ -112,9 +116,9 @@ class VNet(nn.Module):
         )
 
         self.value2 = nn.Sequential(
-            nn.Linear(225, 256),
+            nn.Linear(15 * 15, 256),
             nn.ReLU(inplace=True),
-            nn.Linear(256, 1),
+            nn.Linear(256, 2),
             nn.Tanh()
         )
 
@@ -144,6 +148,7 @@ class VNet(nn.Module):
                 m.bias.data.zero_()
 
     def forward(self, x):
+        x = x.view(-1, 11, 15, 15)
         x = self.convolutional(x)
         out = self.residual1(x)
         x = x + out
