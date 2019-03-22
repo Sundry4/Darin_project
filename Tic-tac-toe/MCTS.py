@@ -26,9 +26,13 @@ class MCTS:
         self.model_V.eval().to(self.device)
 
         self.board_size = 15
+        self.is_black = True
 
     def get_data(self, board):
         model = self.model_black
+        alpha = 1
+        if not self.is_black:
+            alpha = -1
 
         # костыыыыыыль! :)
         # слой хода 3-тий в списке слоев состояния
@@ -43,11 +47,15 @@ class MCTS:
         output_v = F.softmax(self.model_V(data), dim=1)[0]
         evaluation = (output_v[0] - output_v[1]).item()
 
-        return F.softmax(output, dim=1).cpu().detach().numpy()[0], evaluation
+        return F.softmax(output, dim=1).cpu().detach().numpy()[0], evaluation * alpha
 
     def get_policy(self, board, possible_moves): # possible move is set of numbers from 0 to 224
+        self.is_black = True
+        if board[2][0][0].item() == -1:
+            self.is_black = False
+
         start = time.clock()
-        tm = 3
+        tm = 2.8
 
         temp = 1
         count = self.board_size**2 - len(possible_moves)
@@ -75,6 +83,12 @@ class MCTS:
         is_black = False
         if turn[0][0] == 1:
             is_black = True
+
+        hist_4_black = deepcopy(hist_3_black)
+        hist_4_white = deepcopy(hist_3_white)
+
+        hist_3_black = deepcopy(hist_2_black)
+        hist_3_white = deepcopy(hist_2_white)
 
         hist_2_black = deepcopy(hist_1_black)
         hist_2_white = deepcopy(hist_1_white)
@@ -104,9 +118,7 @@ class MCTS:
         made_moves = [set(), set()] # 1st is black, 2nd is white
         simulation = []
 
-        is_white = False
-        if board[2][0][0].item() == -1:
-            is_white = True
+        is_white = not self.is_black
 
         winner = 0
         while self.conv(made_moves) in data.keys():
@@ -117,7 +129,7 @@ class MCTS:
 
             P = data[curr_set][0]  # prior probabilities
             N = data[curr_set][1]  # visit count
-            c = np.sqrt(np.sum(N))
+            c = np.sqrt(np.sum(N) + 1)
             U = [P[i] * c / (1 + N[i]) for i in range(self.board_size**2)]
             Q = data[curr_set][2]  # action value
 
@@ -133,11 +145,14 @@ class MCTS:
             made_moves[is_white].add(move)
             simulation.append(move)
             board = self.update_board(board, [move // self.board_size, move % self.board_size])
-
             is_white = not is_white
 
             if self.check_win_condition(board, [move // self.board_size, move % self.board_size]):
-                winner = is_white * 2 - 1
+                winner = 1  # player gets +1 value if root state is his turn and he won, else he gets -1 value
+                if self.is_black and not is_white:
+                    winner = -1
+                if not self.is_black and is_white:
+                    winner = -1
                 break
 
 
@@ -163,6 +178,7 @@ class MCTS:
             Q = data[curr_set][2]
             N[move] += 1
             Q[move] = (Q[move] * (N[move] - 1) + evaluation) / N[move]
+
             data[curr_set][1] = N
             data[curr_set][2] = Q
 

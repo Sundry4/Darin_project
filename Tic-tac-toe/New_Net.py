@@ -9,15 +9,13 @@ class PNet(nn.Module):
         self.convolutional = nn.Sequential(
             nn.Conv2d(11, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5)
+            nn.ReLU(inplace=True)
         )
 
         self.residual1 = nn.Sequential(
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            # nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True)
@@ -27,7 +25,6 @@ class PNet(nn.Module):
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
-            # nn.MaxPool2d(kernel_size=2, stride=2),
             nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True)
@@ -36,8 +33,7 @@ class PNet(nn.Module):
         self.policy1 = nn.Sequential(
             nn.Conv2d(256, 2, kernel_size=1, stride=1),
             nn.BatchNorm2d(2),
-            nn.ReLU(inplace=True),
-            nn.Dropout(p=0.5)
+            nn.ReLU(inplace=True)
         )
 
         self.policy2 = nn.Sequential(
@@ -77,8 +73,8 @@ class PNet(nn.Module):
         x = x + out
         out = self.residual2(x)
         x = x + out
-
-        return self.policy(x)
+        x = self.policy(x)
+        return x
 
 
 class VNet(nn.Module):

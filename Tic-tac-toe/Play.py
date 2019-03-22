@@ -1,11 +1,10 @@
 from Game import *
 from Players import *
+import time
 
 game = Game(15)
-# player_one = HumanPlayer(15)
-# player_two = OMGVPlayer(0)   # 1 - for 'X', 0 - for 'O'
 
-player_one = AI_Player(1)   # 1 - for 'X', 0 - for 'O'
-player_two = HumanPlayer(15)
+player_one = No_Tree_Player(1)
+player_two = Human_Player()   # 1 - for 'X', 0 - for 'O'
 
 game.start_game(player_one, player_two)
