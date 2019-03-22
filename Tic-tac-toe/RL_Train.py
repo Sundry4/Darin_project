@@ -90,7 +90,7 @@ if __name__ == "__main__":
         player_two = AI_Player(0, mcts)
 
         # for j in range(5):
-        game = Self_play_dataset(player_one, player_two)
+        game = Self_play_dataset(mcts)
         game.play()
         dataset = game.form_dataset()
 

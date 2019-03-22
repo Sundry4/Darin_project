@@ -6,7 +6,7 @@ import torch
 from torch import utils
 import torch.nn as nn
 import torch.nn.functional as F
-from New_Net import *
+from Net import *
 
 
 class MCTS:

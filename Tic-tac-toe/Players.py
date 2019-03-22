@@ -3,8 +3,7 @@ import random
 import pygame
 import torch
 import numpy as np
-from Net import Net
-from New_Net import *
+from Net import *
 import torch.nn as nn
 import torch.nn.functional as F
 from MCTS import *
@@ -168,7 +167,7 @@ class AI_Player:
 
     def __init__(self):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.mcts = MCTS(64, 26)
+        self.mcts = MCTS(64, 42)
 
     # returns 2 numbers from 0 to 14
     def move_(self, possible_moves, board):

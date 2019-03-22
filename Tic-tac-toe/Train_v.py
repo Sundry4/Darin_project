@@ -10,7 +10,7 @@ from torch.optim import lr_scheduler
 import os
 
 from Layer11_V_Dataset import form_dataset
-from New_Net import VNet
+from Net import VNet
 import warnings
 warnings.filterwarnings("ignore")
 
