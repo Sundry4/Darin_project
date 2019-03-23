@@ -14,3 +14,7 @@ It is divided by 2 parts.
 Firstly, I train a model on dataset of moves made by experts using supervised learning
 
 Then I use MCTS as reinforcement learning to achieve better results
+
+# Playing
+
+To play me game you need to download Play folder and run file `play.py`
