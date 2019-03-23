@@ -17,4 +17,4 @@ Then I use MCTS as reinforcement learning to achieve better results
 
 # Playing
 
-To play me game you need to download Play folder and run file `play.py`
+To play my game you need to download `Play` folder and run file `play.py`
