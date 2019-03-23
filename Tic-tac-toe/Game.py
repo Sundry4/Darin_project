@@ -249,7 +249,7 @@ class Game:
                 winner = 'O'
                 if curr_player == player_two:
                     winner = 'X'
-                print(time.clock() - start, "\n")
+                print("Time:", time.clock() - start, "\n")
                 self.end(winner)
 
             self.turn *= -1

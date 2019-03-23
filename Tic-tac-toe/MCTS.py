@@ -7,6 +7,8 @@ from torch import utils
 import torch.nn as nn
 import torch.nn.functional as F
 from Net import *
+import warnings
+warnings.filterwarnings("ignore")
 
 
 class MCTS:
@@ -14,11 +16,15 @@ class MCTS:
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.model_black = PNet()
-        self.model_black.load_state_dict(torch.load("model11_black_{}.pth".format(number_p)))
+        self.model_black.load_state_dict(
+            torch.load("model11_black_{}.pth".format(number_p), map_location=lambda storage, loc: storage)
+        )
         self.model_black.eval().to(self.device)
 
         self.model_white = PNet()
-        self.model_white.load_state_dict(torch.load("model11_white_{}.pth".format(number_p)))
+        self.model_white.load_state_dict(
+            torch.load("model11_white_{}.pth".format(number_p), map_location=lambda storage, loc: storage)
+        )
         self.model_white.eval().to(self.device)
 
         self.model_V = VNet()

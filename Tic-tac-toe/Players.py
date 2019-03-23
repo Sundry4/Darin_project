@@ -55,7 +55,8 @@ class Random_Player:
 
     def move_(self, possible_moves, board):
         time.sleep(0.1)
-        return random.choice(possible_moves)
+        move = random.choice(list(possible_moves))
+        return [move // 15, move % 15]
 
 
 class No_Tree_Player:
@@ -66,9 +67,13 @@ class No_Tree_Player:
 
         self.model = PNet()
         if is_black:
-            self.model.load_state_dict(torch.load('model11_black_64.pth'))
+            self.model_black.load_state_dict(
+                torch.load("model11_black_64.pth", map_location=lambda storage, loc: storage)
+            )
         else:
-            self.model.load_state_dict(torch.load("model11_white_64.pth"))
+            self.model_white.load_state_dict(
+                torch.load("model11_white_64.pth", map_location=lambda storage, loc: storage)
+            )
         self.model.eval()
 
     # returns 2 numbers from 0 to 14
