@@ -2,6 +2,8 @@
 
 Machine learning project containing combination of supervised and reinforcement learning
 
+In this project I avoid any forbidden moves. So, I have a game of tic-tac-toe
+
 Here is an example of game
 ![](https://github.com/ashaba1in/Darin/blob/master/game_sample.png)
 
