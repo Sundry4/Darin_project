@@ -20,4 +20,5 @@ Then I use MCTS as reinforcement learning to achieve better results
 # Playing
 
 To play my game you need to download `Play` folder and run file `play.py`
+
 You also need to have `torch` and `numpy` libraries been installed
