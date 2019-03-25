@@ -1,6 +1,5 @@
 from Game import *
 from Players import *
-import time
 
 player_one = Human_Player()
 player_two = AI_Player()

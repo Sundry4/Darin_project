@@ -28,7 +28,9 @@ class MCTS:
         self.model_white.eval().to(self.device)
 
         self.model_V = VNet()
-        self.model_V.load_state_dict(torch.load('model11_V_{}.pth'.format(number_v)))
+        self.model_V.load_state_dict(
+            torch.load('model11_V_{}.pth'.format(number_v), map_location=lambda storage, loc: storage)
+        )
         self.model_V.eval().to(self.device)
 
         self.board_size = 15
@@ -47,7 +49,7 @@ class MCTS:
 
         data = torch.tensor(board)
         data = data.to(self.device)
-        data = data.type(torch.cuda.FloatTensor)
+        data = data.type(torch.FloatTensor)
         output = model(data.to(self.device))
 
         output_v = F.softmax(self.model_V(data), dim=1)[0]
