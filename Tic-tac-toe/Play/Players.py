@@ -171,7 +171,6 @@ class AI_Player:
     board_size = 15
 
     def __init__(self):
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.mcts = MCTS(64, 42)
 
     # returns 2 numbers from 0 to 14

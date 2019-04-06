@@ -13,25 +13,23 @@ warnings.filterwarnings("ignore")
 
 class MCTS:
     def __init__(self, number_p, number_v):
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
         self.model_black = PNet()
         self.model_black.load_state_dict(
             torch.load("model11_black_{}.pth".format(number_p), map_location=lambda storage, loc: storage)
         )
-        self.model_black.eval().to(self.device)
+        self.model_black.eval()
 
         self.model_white = PNet()
         self.model_white.load_state_dict(
             torch.load("model11_white_{}.pth".format(number_p), map_location=lambda storage, loc: storage)
         )
-        self.model_white.eval().to(self.device)
+        self.model_white.eval()
 
         self.model_V = VNet()
         self.model_V.load_state_dict(
             torch.load('model11_V_{}.pth'.format(number_v), map_location=lambda storage, loc: storage)
         )
-        self.model_V.eval().to(self.device)
+        self.model_V.eval()
 
         self.board_size = 15
         self.is_black = True
@@ -47,10 +45,8 @@ class MCTS:
         if board[2][0][0].item() == -1:
             model = self.model_white
 
-        data = torch.tensor(board)
-        data = data.to(self.device)
-        data = data.type(torch.FloatTensor)
-        output = model(data.to(self.device))
+        data = torch.tensor(board).type(torch.FloatTensor)
+        output = model(data)
 
         output_v = F.softmax(self.model_V(data), dim=1)[0]
         evaluation = (output_v[0] - output_v[1]).item()
@@ -72,7 +68,7 @@ class MCTS:
         if count > 50:
             temp = 0.1
 
-        policy, v = self.get_data(board.to(self.device))
+        policy, v = self.get_data(board)
         N = [0] * self.board_size**2
         data = {self.conv([set(), set()]): [policy, deepcopy(N), deepcopy(N)]}  # N matches Q at the beginning
 
